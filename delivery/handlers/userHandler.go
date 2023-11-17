@@ -1,27 +1,29 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"project/delivery/middleware"
 	"project/delivery/models"
 	"project/domain/entity"
+	Cartusecase "project/usecase/cart"
 	Productusecase "project/usecase/product"
 	usecase "project/usecase/user"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	
+	"github.com/jinzhu/copier"
 )
 
 type UserHandler struct {
 	UserUseCase    *usecase.UserUseCase
 	ProductUseCase *Productusecase.ProductUseCase
+	CartUSeCase    *Cartusecase.CartUseCase
 }
 
-func NewUserhandler(UserUseCase *usecase.UserUseCase, ProductUseCase *Productusecase.ProductUseCase) *UserHandler {
-	return &UserHandler{UserUseCase, ProductUseCase}
+func NewUserhandler(UserUseCase *usecase.UserUseCase, ProductUseCase *Productusecase.ProductUseCase, CartUseCase *Cartusecase.CartUseCase) *UserHandler {
+	return &UserHandler{UserUseCase, ProductUseCase, CartUseCase}
 }
-
 
 func (uh *UserHandler) SignupWithOtp(c *gin.Context) {
 	var user models.Signup
@@ -60,15 +62,22 @@ func (uh *UserHandler) LoginWithPassword(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	} else {
+		fmt.Println("userId:", userId)
 		middleware.CreateToken(userId, phone, "user", c)
 		c.JSON(http.StatusOK, gin.H{"message": "user logged in succesfully and cookie stored"})
 	}
 
 }
 
-
-
 func (po *UserHandler) Products(c *gin.Context) {
+
+	userID, exists := c.Get("userId")
+	if !exists || userID == nil {
+		// Handle the case where "userId" is not set in the context or is nil
+		c.JSON(http.StatusBadRequest, gin.H{"error": "userId not found in the context"})
+		return
+	}
+
 	pagestr := c.DefaultQuery("page", "1")
 	limitstr := c.DefaultQuery("limit", "5")
 	page, err := strconv.Atoi(pagestr)
@@ -97,7 +106,7 @@ func (po *UserHandler) Products(c *gin.Context) {
 			Category: product.Category,
 		}
 	}
-	c.JSON(http.StatusOK, gin.H{"products": prodlist})
+	c.JSON(http.StatusOK, gin.H{"userId": userID, "products": prodlist})
 }
 
 func (pd *UserHandler) ProductDetails(c *gin.Context) {
@@ -113,4 +122,251 @@ func (pd *UserHandler) ProductDetails(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"products": product, "product details": productdetails})
+}
+
+func (ac *UserHandler) AddToCart(c *gin.Context) {
+	userID, exists := c.Get("userId")
+	if !exists || userID == nil {
+		// Handle the case where "userid" is not set in the context or is nil
+		c.JSON(http.StatusBadRequest, gin.H{"error": "userid not found in the context"})
+		return
+	}
+	userid := userID.(int)
+	fmt.Println("userId", userid)
+	product := c.Param("category")
+	strid := c.Param("productid")
+	strquantity := c.Param("quantity")
+	id, err := strconv.Atoi(strid)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "str convertion failed"})
+		return
+	}
+	quantity, err := strconv.Atoi(strquantity)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "str convertion failed"})
+		return
+	}
+
+	err = ac.CartUSeCase.ExecuteAddToCart(product, id, quantity, userid)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	addedProduct, err := ac.CartUSeCase.ExecuteCartItems(userid)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "product addedto car succesfully", "addedproduct": addedProduct})
+}
+
+func (rc *UserHandler) RemoveFromCart(c *gin.Context) {
+	userID, _ := c.Get("userId")
+	userid := userID.(int)
+	id := c.Param("id")
+	product := c.Param("product")
+	Id, err := strconv.Atoi(id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "str convertion failed"})
+		return
+	}
+	err1 := rc.CartUSeCase.ExecuteRemoveCartItem(userid, Id, product)
+	if err1 != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err1.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "product removed from cart"})
+}
+
+func (cu *UserHandler) Cart(c *gin.Context) {
+	userID, _ := c.Get("userId")
+	userid := userID.(int)
+	var usercartresponse entity.Cart
+	usercart, err1 := cu.CartUSeCase.ExecuteCart(userid)
+	if err1 != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err1.Error()})
+		return
+	}
+	copier.Copy(&usercartresponse, &usercart)
+	c.JSON(http.StatusOK, gin.H{"usercart": usercartresponse})
+}
+
+func (cu *UserHandler) AddToWishList(c *gin.Context) {
+	userID, _ := c.Get("userId")
+	userid := userID.(int)
+	strproduct := c.Param("category")
+	product, err := strconv.Atoi(strproduct)
+	strId := c.Param("productid")
+	id, err := strconv.Atoi(strId)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "string conc failed"})
+		return
+	}
+	err1 := cu.CartUSeCase.ExecuteAddWishlist(product, id, userid)
+	if err1 != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err1.Error()})
+		return
+	}
+	wishlistItems, err := cu.CartUSeCase.ExecuteViewWishlist(userid)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve wishlist items"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "product added to wishlist", "wishlist": wishlistItems})
+}
+
+func (cu *UserHandler) RemoveFromWishlist(c *gin.Context) {
+	userID, _ := c.Get("userId")
+	userid := userID.(int)
+	strproduct := c.Param("product")
+	product, err := strconv.Atoi(strproduct)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "strng conversion failed"})
+		return
+	}
+	ID := c.Param("id")
+	id, err := strconv.Atoi(ID)
+
+	err1 := cu.CartUSeCase.ExecuteRemoveFromWishList(product, id, userid)
+	if err1 != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err1.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "succesfully removed from wishlist"})
+}
+func (cu *UserHandler) ViewWishlist(c *gin.Context) {
+	userID, _ := c.Get("userId")
+	userid := userID.(int)
+	wishlist, err := cu.CartUSeCase.ExecuteViewWishlist(userid)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	}
+	c.JSON(http.StatusOK, gin.H{"message": wishlist})
+}
+
+func (cu *UserHandler) Logout(c *gin.Context) {
+	err := middleware.DeleteToken(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"errror": "cookie delete failed"})
+		return
+	} else {
+		c.JSON(http.StatusOK, gin.H{"message": "user logged out succesfully"})
+	}
+}
+
+func (cu *UserHandler) AddAddress(c *gin.Context) {
+	userID, _ := c.Get("userId")
+	userid := userID.(int)
+	var address entity.UserAddress
+	if err := c.ShouldBindJSON(&address); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	address.User_id = userid
+	err := cu.UserUseCase.ExecuteAddAddress(&address)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	} else {
+		c.JSON(http.StatusOK, gin.H{"message": "address added succesfully"})
+	}
+}
+
+func (cy *UserHandler) ShowUserDetails(c *gin.Context) {
+	userID, _ := c.Get("userId")
+	userid := userID.(int)
+	userdetails, address, err := cy.UserUseCase.ExecuteShowUserDetails(userid)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"userdetails": userdetails, "address": address})
+}
+
+func (eu *UserHandler) EditProfile(c *gin.Context) {
+	userID, _ := c.Get("userId")
+	userid := userID.(int)
+	var userinput models.EditUser
+	if err := c.ShouldBindJSON(&userinput); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	var user entity.User
+	copier.Copy(&user, &userinput)
+	err := eu.UserUseCase.ExecuteEditProfile(user, userid)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	updatedUser, _, err := eu.UserUseCase.ExecuteShowUserDetails(userid)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch updated user details"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "user edited succesfully", "updateduser": updatedUser})
+}
+
+func (cp *UserHandler) ChangePassword(c *gin.Context) {
+	userID, _ := c.Get("userId")
+	userid := userID.(int)
+	key, err := cp.UserUseCase.ExecuteChangePassword(userid)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "otp send succesfully", "key": key})
+}
+
+func (cp *UserHandler) OtpValidationPassword(c *gin.Context) {
+	userID, _ := c.Get("userId")
+	userid := userID.(int)
+	password := c.PostForm("password")
+	otp := c.PostForm("otp")
+	err := cp.UserUseCase.ExecuteOtpValidationPassword(password, otp, userid)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "password changed succesfully"})
+}
+
+func (cl *UserHandler) CartItems(c *gin.Context) {
+
+	userID, _ := c.Get("userId")
+	userid := userID.(int)
+	cartitems, err := cl.CartUSeCase.ExecuteCartitem(userid)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"cartlist": cartitems})
+}
+
+func (ea *UserHandler) EditAddress(c *gin.Context) {
+	var useraddress entity.UserAddress
+	if err := c.ShouldBindJSON(&useraddress); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	userID, _ := c.Get("userId")
+	userid := userID.(int)
+	addresstype := c.Param("type")
+	err := ea.UserUseCase.ExecuteEditAddress(useraddress, userid, addresstype)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": "address edited succesfully"})
+}
+
+func (da *UserHandler) DeleteAddress(c *gin.Context) {
+	userID, _ := c.Get("userId")
+	userid := userID.(int)
+	addresstype := c.Param("type")
+	err := da.UserUseCase.ExecuteDeleteAddress(userid, addresstype)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": "address Deleted succesfully"})
 }

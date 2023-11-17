@@ -113,3 +113,51 @@ func (ur *UserRepository) GetByKey(key string) (*entity.OtpKey, error) {
 	}
 	return &otpKey, nil
 }
+
+func (ur *UserRepository) CreateAddress(address *entity.UserAddress) error {
+	return ur.db.Create(address).Error
+}
+
+func (ur *UserRepository) GetAddressById(addressid int) (*entity.UserAddress, error) {
+	var address entity.UserAddress
+	result := ur.db.Where("user_id=?", addressid).First(&address)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, result.Error
+		}
+		return nil, result.Error
+	}
+	return &address, nil
+}
+
+func (ur *UserRepository) GetAddressByType(userid int, addresstype string) (*entity.UserAddress, error) {
+	var address entity.UserAddress
+	result := ur.db.Where("user_id=? AND type=?", userid, addresstype).First(&address)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, result.Error
+		}
+		return nil, result.Error
+	}
+	return &address, nil
+
+}
+
+func (ur *UserRepository) UpdateAddress(usaaddress *entity.UserAddress) error {
+	if err := ur.db.Save(usaaddress).Error; err != nil {
+		log.Println("Error updating address:", err)
+		return err
+	}
+	return nil
+}
+
+
+func (cn *UserRepository) DeleteAddress(Id int) error {
+
+	err := cn.db.Delete(&entity.UserAddress{}, Id).Error
+	if err != nil {
+		return errors.New("Coudnt delete")
+	}
+	return nil
+
+}

@@ -23,6 +23,7 @@ func UserRetreiveCookie(c *gin.Context) {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "occured while rereiving"})
 			c.Abort()
 		} else {
+			fmt.Println("Retrieved userId:", userId)
 			c.Set("userId", userId)
 			c.Set("phonenumber", phone)
 		}
@@ -99,36 +100,51 @@ func RetreiveToken(c *gin.Context) (int, int, string, error) {
 			return 0, 0, "", err
 		}
 		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+			fmt.Printf("Claims: %+v\n", claims)
 			var userId, userPhone int
 			var role string
-		
-			if id, exists := claims["userid"]; exists {
-				userId, _ = id.(int)
+
+			// for key, value := range claims {
+			// 	switch key {
+			// 	case "userid":
+			// 		if id, ok := value.(float64); ok {
+			// 			userId = int(id)
+			// 		}
+			// 	case "phone":
+			// 		if phone, ok := value.(float64); ok {
+			// 			userPhone = int(phone)
+			// 		}
+			// 	case "role":
+			// 		if r, ok := value.(string); ok {
+			// 			role = r
+			// 		}
+			// 	}
+			// }
+			if id, exists := claims["userId"]; exists {
+				if idFloat, ok := id.(float64); ok {
+					userId = int(idFloat)
+				}
 			}
-		
+
 			if phone, exists := claims["phone"]; exists {
-				userPhone, _ = phone.(int)
+				if phoneFloat, ok := phone.(float64); ok {
+					userPhone = int(phoneFloat)
+				}
 			}
-		
+
 			if r, exists := claims["role"]; exists {
-				role, _ = r.(string)
+				if roleString, ok := r.(string); ok {
+					role = roleString
+				}
 			}
-		
+			fmt.Println("userid", userId)
 			return userId, userPhone, role, nil
 		} else {
 			return 0, 0, "", fmt.Errorf("invalid token")
 		}
-		
-		// if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		// 	userId := claims["userid"].(int)
-		// 	userPhone := claims["phone"].(int)
-		// 	role := claims["role"].(string)
-		// 	return userId, userPhone, role, nil
-		// } else {
-		// 	return 0, 0, "", fmt.Errorf("invalid token")
-		// }
 	}
 }
+
 func DeleteToken(c *gin.Context) error {
 	c.SetCookie("Authorise", "", 0, "", "", true, true)
 	fmt.Println("cookie deleted")

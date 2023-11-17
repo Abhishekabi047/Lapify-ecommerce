@@ -9,18 +9,18 @@ import (
 )
 
 func AdminRouter(r *gin.Engine, adminHandler *handlers.AdminHandler) *gin.Engine {
-	r.POST("/adminloginpassword", adminHandler.AdminLoginWithPassword)
-	
+	r.POST("/admin/login", adminHandler.AdminLoginWithPassword)
 
-	r.GET("/usermanagement", m.AdminRetreiveToken, adminHandler.UsersList)
-	r.POST("/userpermission/:id", m.AdminRetreiveToken, adminHandler.TogglePermission)
+	r.GET("admin/usermanagement", m.AdminRetreiveToken, adminHandler.UsersList)
+	r.POST("admin/usermanagement/:id", m.AdminRetreiveToken, adminHandler.TogglePermission)
 
-	r.POST("/addcategory", m.AdminRetreiveToken, adminHandler.CreateCategory)
-	r.PUT("/editcategory:id", m.AdminRetreiveToken, adminHandler.EditCategory)
-	r.DELETE("/deletecategory/:id", m.AdminRetreiveToken, adminHandler.DeleteCategory)
+	r.POST("/admin/category", m.AdminRetreiveToken, adminHandler.CreateCategory)
+	r.PATCH("/admin/category/:id", m.AdminRetreiveToken, adminHandler.EditCategory)
+	r.DELETE("/admin/category/:id", m.AdminRetreiveToken, adminHandler.DeleteCategory)
 
-	r.POST("/addproduct", m.AdminRetreiveToken, adminHandler.CreateProduct)
-	r.PUT("/editproduct/:id", m.AdminRetreiveToken, adminHandler.EditProduct)
-	r.DELETE("/deleteproduct/:id", m.AdminRetreiveToken, adminHandler.DeleteProduct)
+	r.GET("/admin/products", m.AdminRetreiveToken, adminHandler.AdminProductlist)
+	r.POST("/admin/product", m.AdminRetreiveToken, adminHandler.CreateProduct)
+	r.PATCH("/admin/product/:id", m.AdminRetreiveToken, adminHandler.EditProduct)
+	r.DELETE("admin/product/:id", m.AdminRetreiveToken, adminHandler.DeleteProduct)
 	return r
 }

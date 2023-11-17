@@ -3,6 +3,7 @@ package repository
 import (
 	"errors"
 	"project/domain/entity"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -50,7 +51,7 @@ func (pr *ProductRepository) GetProductById(id int) (*entity.Product, error) {
 
 func (pn *ProductRepository) GetProductByName(name string) error {
 	var prodname entity.Product
-	result := pn.db.Where(&entity.Product{Name: name}).Find(&prodname)
+	result := pn.db.Where(&entity.Product{Name: name}).First(&prodname)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return result.Error
@@ -90,7 +91,7 @@ func (uc *ProductRepository) UpdateCategory(category *entity.Category) error {
 
 func (cn *ProductRepository) GetCategoryByName(name string) error {
 	var prodname entity.Category
-	result := cn.db.Where(&entity.Category{Name: name}).Find(&prodname)
+	result := cn.db.Where("name=?", name).First(&prodname)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return result.Error
@@ -114,13 +115,82 @@ func (cr *ProductRepository) GetCategoryById(id int) (*entity.Category, error) {
 
 func (cn *ProductRepository) DeleteCategory(Id int) error {
 
-    err := cn.db.Table("categories").Where("id = ?", Id).Delete(&entity.Category{})
-	if err != nil{
+	err := cn.db.Delete(&entity.Category{}, Id).Error
+	if err != nil {
 		return errors.New("Coudnt delete")
 	}
 	return nil
-    
+
 }
 func (pr *ProductRepository) CreateInventory(inventory *entity.Inventory) error {
 	return pr.db.Create(inventory).Error
+}
+
+func (pr *ProductRepository) CreateCoupon(coupon *entity.Coupon) error {
+	if err := pr.db.Create(coupon).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (pr *ProductRepository) GetAllCoupons() (*[]entity.Coupon, error) {
+	var coupon []entity.Coupon
+	currenttime := time.Now()
+	err := pr.db.Where("valid_until=?", currenttime).Find(&coupon).Error
+	if err != nil {
+		return nil, err
+	}
+	return &coupon, nil
+}
+
+func (pr *ProductRepository) GetCouponByCode(code string) (*entity.Coupon, error) {
+	coupon := &entity.Coupon{}
+	err := pr.db.Where("code=?", code).First(coupon).Error
+	if err != nil {
+		return nil, err
+	}
+	return coupon, nil
+}
+
+func (pr *ProductRepository) UpdateCouponCount(coupon *entity.Coupon) error {
+	return pr.db.Save(coupon).Error
+}
+
+func (pr *ProductRepository) UpdateCouponUsage(coupon *entity.UsedCoupon) error {
+	if err := pr.db.Create(coupon).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (pr *ProductRepository) CreateOffer(offer *entity.Offer) error {
+	if err := pr.db.Create(offer).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (pr *ProductRepository) GetOfferByPrize(Prize int) (*[]entity.Offer, error) {
+	offers := &[]entity.Offer{}
+	err := pr.db.Where("min_prize=?", Prize).Find(&offers).Error
+	if err != nil {
+		return nil, err
+	} else if offers == nil {
+		return nil, err
+	}
+	return offers, nil
+}
+
+func (pr *ProductRepository) DecreaseProductQuantity(product *entity.Inventory) error {
+	exisitingproduct := &entity.Inventory{}
+	err := pr.db.Where("product_category=? AND product_id=?", product.ProductCategory, product.ProductId).First(exisitingproduct).Error
+	if err != nil {
+		return err
+	}
+	newquantity := exisitingproduct.Quantity - product.Quantity
+	err = pr.db.Model(exisitingproduct).Update("quantity", newquantity).Error
+	if err != nil {
+		return err
+	}
+	return nil
 }

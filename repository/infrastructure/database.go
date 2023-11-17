@@ -19,6 +19,6 @@ func ConnectDb() (*gorm.DB, error) {
 		return nil, fmt.Errorf("failed to connect to db : %w", err)
 	}
 	DB = db
-	DB.AutoMigrate(&entity.Admin{}, &entity.OtpKey{}, &models.Signup{}, &entity.User{}, &entity.Category{}, &entity.Product{}, &entity.ProductDetails{}, &entity.ProductInput{}, &entity.Inventory{})
+	DB.AutoMigrate(&entity.Admin{}, &entity.OtpKey{}, &models.Signup{}, &entity.User{}, &entity.Category{}, &entity.Product{}, &entity.ProductDetails{}, &entity.ProductInput{}, &entity.Inventory{}, &entity.CartItem{}, &entity.Cart{}, &entity.WishList{}, &entity.Order{}, &entity.OrderItem{}, &entity.UserAddress{}, &entity.Coupon{}, &entity.UsedCoupon{}, &entity.Offer{}, &entity.Inventory{}, &entity.Invoice{})
 	return db, nil
 }

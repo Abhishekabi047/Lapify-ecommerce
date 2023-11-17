@@ -46,6 +46,7 @@ func (uh *AdminHandler) AdminLoginWithPassword(c *gin.Context) {
 	} else {
 		middleware.CreateToken(adminId, email, "admin", c)
 	}
+	c.JSON(http.StatusOK, gin.H{"message": "Admin logged in succesfully"})
 }
 
 func (ul *AdminHandler) UsersList(c *gin.Context) {
@@ -82,8 +83,6 @@ func (tp *AdminHandler) TogglePermission(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": "user permission toogled"})
 }
 
-
-
 func (ct *AdminHandler) CreateCategory(c *gin.Context) {
 	var input entity.Category
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -100,12 +99,17 @@ func (ct *AdminHandler) CreateCategory(c *gin.Context) {
 		return
 	}
 
-	_, err := ct.ProductUseCase.ExecuteCreateCategory(category)
+	newcat, err := ct.ProductUseCase.ExecuteCreateCategory(category)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": "category added succesfully"})
+	catlist, err := ct.ProductUseCase.ExecuteGetCategoryId(newcat)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": "category added succesfully", "category ": catlist})
 }
 func (et *AdminHandler) EditCategory(c *gin.Context) {
 	var category entity.Category
@@ -113,15 +117,20 @@ func (et *AdminHandler) EditCategory(c *gin.Context) {
 	Id, err := strconv.Atoi(id)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "str conversion failed"})
+		return
 	}
 	if err := c.ShouldBindJSON(&category); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
 	err1 := et.ProductUseCase.ExecuteEditCategory(category, Id)
 	if err1 != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err1.Error()})
+		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": "product edited succesfully"})
+	catlist, err := et.ProductUseCase.ExecuteGetCategoryId(Id)
+
+	c.JSON(http.StatusOK, gin.H{"success": "product edited succesfully", "edited category": catlist})
 }
 
 func (et *AdminHandler) DeleteCategory(c *gin.Context) {
@@ -219,4 +228,25 @@ func (dp *AdminHandler) DeleteProduct(c *gin.Context) {
 	} else {
 		c.JSON(http.StatusOK, gin.H{"succes": "product deleted"})
 	}
+}
+
+func (pl *AdminHandler) AdminProductlist(c *gin.Context) {
+	pagestr := c.DefaultQuery("page", "1")
+	page, err := strconv.Atoi(pagestr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "string conversion failed"})
+		return
+	}
+	limitstr := c.DefaultQuery("limit", "5")
+	limit, err := strconv.Atoi(limitstr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "string conversion failed"})
+		return
+	}
+	productlist, err1 := pl.ProductUseCase.ExecuteProductList(page, limit)
+	if err1 != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err1.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"products": productlist})
 }
