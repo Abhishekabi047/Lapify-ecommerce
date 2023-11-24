@@ -11,10 +11,10 @@ type Product struct {
 	ID         int    `gorm:"primarykey"`
 	Name       string `json:"name" validate:"required"`
 	Price      int    `json:"price" validate:"required,numeric"`
-	Size       string `json:"size validate:required"`
+	Size       string `json:"size" validate:"required"`
 	Removed    bool   `json:"removed"`
 	Category   int    `gorm:"foreignKey:ID;references:ID" validate:"required,numeric"`
-	ImageURL   string `json:"imageurl" validate:"required"` 
+	ImageURL   string `json:"imageurl" validate:"required"`
 }
 
 type ProductDetails struct {

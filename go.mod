@@ -4,6 +4,8 @@ go 1.18
 
 require github.com/joho/godotenv v1.5.1
 
+require github.com/stripe/stripe-go v70.15.0+incompatible // indirect
+
 require (
 	github.com/bytedance/sonic v1.10.2 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20230717121745-296ad89f973d // indirect
@@ -31,6 +33,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.1.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/razorpay/razorpay-go v1.2.0
 	github.com/twilio/twilio-go v1.15.1 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.11 // indirect

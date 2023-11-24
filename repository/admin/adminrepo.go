@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log"
 	"project/domain/entity"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -71,11 +72,65 @@ func (ar *AdminRepository) CreateOtpKey(key, phone string) error {
 	}
 	return nil
 }
-func (ar *AdminRepository) GetAllUsers(offset,limit int) ([]entity.User,error){
+func (ar *AdminRepository) GetAllUsers(offset, limit int) ([]entity.User, error) {
 	var users []entity.User
-	err:=ar.db.Offset(offset).Limit(limit).Find(&users).Error
-	if err != nil{
-		return nil,err
+	err := ar.db.Offset(offset).Limit(limit).Find(&users).Error
+	if err != nil {
+		return nil, err
 	}
-	return users,nil
+	return users, nil
+}
+
+func (ar *AdminRepository) GetUsers() (int, int, error) {
+	var totalUsers, newUsers int64
+	if err := ar.db.Model(&entity.User{}).Count(&totalUsers).Error; err != nil {
+		return 0, 0, err
+	}
+	if err := ar.db.Model(&entity.User{}).Where("created_at >= ?", time.Now().AddDate(0, 0, -7)).Count(&newUsers).Error; err != nil {
+		return 0, 0, err
+	}
+	return int(totalUsers), int(newUsers), nil
+}
+
+func (ar *AdminRepository) GetProducts() (int,int,error) {
+	var totalproducts int64
+	var stocklessProducts int64
+	if err:=ar.db.Model(&entity.Product{}).Where("removed =?",false).Count(&totalproducts).Error;err != nil{
+		return 0,0,err
+	}
+	if err := ar.db.Where(&entity.Inventory{}).Where("quantity=?",0).Count(&stocklessProducts).Error;err != nil{
+		return 0,0,err
+	}
+	return int(totalproducts),int(stocklessProducts),nil
+}
+
+func (ar *AdminRepository) GetOrders() (int,int,error){
+	var totalorders int64
+	var totalamount int64
+
+	if err:=ar.db.Model(&entity.Order{}).Count(&totalorders).Error;err != nil{
+		return 0,0,err
+	}
+	if err :=ar.db.Model(&entity.Order{}).Select("AVG(total)").Row().Scan(&totalamount);err != nil{
+		return 0,0,err
+	}
+	return int(totalorders),int(totalamount),nil
+}
+func (ar *AdminRepository) GetOrderByStatus() (int,int,error){
+	var pendingorder,returnedorder int64
+	if err:= ar.db.Model(&entity.Order{}).Where("status =?","pending").Count(&pendingorder).Error;err != nil{
+		return 0,0,err
+	}
+	if err := ar.db.Model(&entity.Order{}).Where("status= ?","return").Count(&returnedorder).Error;err !=nil{
+		return 0,0,err
+	}
+	return int(pendingorder),int(returnedorder),nil
+}
+func (ar *AdminRepository) GetRevenue() (int,error){
+	var totalrevenue int64
+
+	if err:=ar.db.Model(&entity.Order{}).Where("SUM(total)").Row().Scan(&totalrevenue);err !=nil{
+		return 0,err
+	}
+	return int(totalrevenue),nil
 }

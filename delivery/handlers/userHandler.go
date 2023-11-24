@@ -79,7 +79,7 @@ func (po *UserHandler) Products(c *gin.Context) {
 	}
 
 	pagestr := c.DefaultQuery("page", "1")
-	limitstr := c.DefaultQuery("limit", "5")
+	limitstr := c.DefaultQuery("limit", "10")
 	page, err := strconv.Atoi(pagestr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "failed page conv"})

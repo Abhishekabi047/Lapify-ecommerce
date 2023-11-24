@@ -10,6 +10,7 @@ import (
 
 func AdminRouter(r *gin.Engine, adminHandler *handlers.AdminHandler) *gin.Engine {
 	r.POST("/admin/login", adminHandler.AdminLoginWithPassword)
+	r.GET("/admin/home", m.AdminRetreiveToken, adminHandler.Home)
 
 	r.GET("admin/usermanagement", m.AdminRetreiveToken, adminHandler.UsersList)
 	r.POST("admin/usermanagement/:id", m.AdminRetreiveToken, adminHandler.TogglePermission)

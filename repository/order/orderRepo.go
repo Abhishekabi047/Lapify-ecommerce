@@ -3,6 +3,7 @@ package order
 import (
 	"errors"
 	"project/domain/entity"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -85,4 +86,60 @@ func (or *OrderRepository) GetAllOrderList(offset, limit int) ([]entity.Order, e
 		return nil, result.Error
 	}
 	return order, nil
+}
+
+func (or *OrderRepository) GetByRazorId(razorId string) (*entity.Order, error) {
+	var order entity.Order
+	result := or.db.Where("payment_id=?", razorId).First(&order)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, errors.New("order not found")
+		}
+	}
+	return &order, nil
+}
+
+func (or *OrderRepository) GetByDate(startdate, enddate time.Time) (*entity.SalesReport, error) {
+	var order []entity.Order
+	var report entity.SalesReport
+
+	if err := or.db.Model(&order).Where("created_at BETWEEN ? AND ? AND status =?", startdate, enddate, "confirmed").Select("SUM(total) as total_sales").Scan(&report).Error; err != nil {
+		return nil, err
+	}
+	if err := or.db.Model(&order).Where("created_at BETWEEN ? AND ? AND status =?", startdate, enddate, "confirmed").Count(&report.TotalOrders).Error; err != nil {
+		return nil, err
+	}
+	if err := or.db.Model(&order).Where("created_at BETWEEN ? AND ? AND status =?", startdate, enddate, "confirmed").Select("AVG(total) as average_order").Scan(&report).Error; err != nil {
+		return nil, err
+	}
+
+	return &report, nil
+
+}
+func (or *OrderRepository) GetByPaymentMethod(startdate, enddate time.Time, paymentmethod string) (*entity.SalesReport, error) {
+	var order []entity.Order
+	var report entity.SalesReport
+
+	if err := or.db.Model(&order).Where("created_at BETWEEN ? AND ? AND status =? AND payment_method=?", startdate, enddate, "confirmed", paymentmethod).Select("SUM(total) as total_sales").Scan(&report).Error; err != nil {
+		return nil, err
+	}
+	if err := or.db.Model(&order).Where("created_at BETWEEN ? AND ? AND status =? AND payment_method=?", startdate, enddate, "confirmed", paymentmethod).Count(&report.TotalOrders).Error; err != nil {
+		return nil, err
+	}
+	if err := or.db.Model(&order).Where("created_at BETWEEN ? AND ? AND status =? AND payment_method=?", startdate, enddate, "confirmed", paymentmethod).Select("AVG(total) as average_order").Scan(&report).Error; err != nil {
+		return nil, err
+	}
+
+	return &report, nil
+
+}
+func (or *OrderRepository) SavePayment(charge *entity.Charge) (err error) {
+	if err := or.db.Create(charge).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (or *OrderRepository) UpdateInvoice(invoice *entity.Invoice) error {
+	return or.db.Save(&invoice).Error
 }

@@ -120,6 +120,18 @@ func (ur *UserRepository) CreateAddress(address *entity.UserAddress) error {
 
 func (ur *UserRepository) GetAddressById(addressid int) (*entity.UserAddress, error) {
 	var address entity.UserAddress
+	result := ur.db.Where("id=?", addressid).First(&address)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, result.Error
+		}
+		return nil, result.Error
+	}
+	return &address, nil
+}
+
+func (ur *UserRepository) GetAddressByID(addressid int) (*entity.UserAddress, error) {
+	var address entity.UserAddress
 	result := ur.db.Where("user_id=?", addressid).First(&address)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {

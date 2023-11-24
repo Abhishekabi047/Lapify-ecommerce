@@ -23,7 +23,6 @@ func NewUser(userRepo *repository.UserRepository) *UserUseCase {
 }
 
 func (us *UserUseCase) ExecuteSignup(user entity.User) (*entity.User, error) {
-	validate := validator.New()
 
 	email, err := us.userRepo.GetByEmail(user.Email)
 	if err != nil {
@@ -50,18 +49,7 @@ func (us *UserUseCase) ExecuteSignup(user entity.User) (*entity.User, error) {
 		Phone:    user.Phone,
 		Password: string(hashedpassword),
 	}
-	if err := validate.Struct(newUser); err != nil {
 
-		errors := err.(validator.ValidationErrors)
-		for _, e := range errors {
-			fmt.Printf("Field: %s, Tag: %s, Value: %s\n", e.Field(), e.Tag(), e.Param())
-		}
-		return nil, err
-	}
-
-	if !isValidName(newUser.Name) {
-		return nil, errors.New("Invalid name format")
-	}
 	err1 := us.userRepo.Create(newUser)
 	if err1 != nil {
 		return nil, errors.New("Error creating user")
@@ -73,27 +61,34 @@ func isValidName(name string) bool {
 	return alphaRegex.MatchString(name)
 }
 
-// func (uu *UserUseCase) ExecuteSignupOtp(phone string) (string,error){
-// 	result,err:=uu.userRepo.GetByPhone(phone)
-// 	if err != nil{
-// 		return "",err
-// 	}
-// 	if result == nil{
-// 		return "",errors.New("user with phone not found")
-// 	}
-// 	key,err1:= utils.SendOtp(phone)
-// 	if err1 != nil{
-// 		return "",nil
-// 	}else{
-// 		err=uu.userRepo.CreateOtpKey(key,phone)
-// 		if err != nil{
-// 			return "",err
-// 		}
-// 		return key,nil
-// 	}
-
-// }
 func (uu *UserUseCase) ExecuteSignupWithOtp(user models.Signup) (string, error) {
+	validate := validator.New()
+	if err := validate.Struct(user); err != nil {
+		if _, ok := err.(*validator.InvalidValidationError); ok {
+			return "", err
+		}
+		errors := err.(validator.ValidationErrors)
+		errorMsg := "Validation failed: "
+		for _, e := range errors {
+			switch e.Tag() {
+			case "required":
+				errorMsg += fmt.Sprintf("%s is required; ", e.Field())
+			case "alpha":
+				errorMsg += fmt.Sprintf("%s should contain only alphabetic characters; ", e.Field())
+			case "email":
+				errorMsg += fmt.Sprintf("%s should be a valid email; ", e.Field())
+			case "numeric":
+				errorMsg += fmt.Sprintf("%s should contain only numeric values; ", e.Field())
+			case "min":
+				errorMsg += fmt.Sprintf("%s should contain minimum 8 charchters; ", e.Field())
+			case "len":
+				errorMsg += fmt.Sprintf("%s should contain 10 numbers; ", e.Field())
+			default:
+				errorMsg += fmt.Sprintf("%s has an invalid value; ", e.Field())
+			}
+		}
+		return "", fmt.Errorf(errorMsg)
+	}
 	var otpKey entity.OtpKey
 	email, err := uu.userRepo.GetByEmail(user.Email)
 	if err != nil {
@@ -185,6 +180,7 @@ func (uu *UserUseCase) ExecuteLoginWithPassword(phone, password string) (int, er
 }
 
 func (u *UserUseCase) ExecuteLogin(phone string) (string, error) {
+
 	var otpKey entity.OtpKey
 	result, err := u.userRepo.GetByPhone(phone)
 	if err != nil {

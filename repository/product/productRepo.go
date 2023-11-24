@@ -2,6 +2,7 @@ package repository
 
 import (
 	"errors"
+	"fmt"
 	"project/domain/entity"
 	"time"
 
@@ -187,8 +188,16 @@ func (pr *ProductRepository) DecreaseProductQuantity(product *entity.Inventory) 
 	if err != nil {
 		return err
 	}
-	newquantity := exisitingproduct.Quantity - product.Quantity
-	err = pr.db.Model(exisitingproduct).Update("quantity", newquantity).Error
+	if exisitingproduct.Quantity == 0 {
+		return errors.New("out of stock")
+	}
+	newQuantity := exisitingproduct.Quantity - product.Quantity
+
+	if newQuantity < 0 {
+		return fmt.Errorf("There is only %d quantity avialable", exisitingproduct.Quantity)
+	}
+
+	err = pr.db.Model(exisitingproduct).Update("quantity", newQuantity).Error
 	if err != nil {
 		return err
 	}

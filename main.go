@@ -48,6 +48,8 @@ func main() {
 	routes.AdminRouter(router, adminHandler)
 	routes.OrderRouter(router, orderHandler)
 
+	router.LoadHTMLGlob("template/*.html")
+	fmt.Println("Templates loaded from:", "template/*.html")
 	fmt.Println("Starting server on port 8080...")
 	err1 := http.ListenAndServe(":8080", router)
 	if err1 != nil {

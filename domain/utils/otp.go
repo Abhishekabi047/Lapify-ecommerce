@@ -37,7 +37,7 @@ var (
 func SendOtp(phone string) (string, error) {
 
 	TWILIO_ACCOUNT_SID = "AC1cd1b8f006dcfa198971917f6c6c0ca6"
-	TWILIO_AUTH_TOKEN = "0595bde4b37def520fe1bfd8ac3d343b"
+	TWILIO_AUTH_TOKEN = "aa80d80bfd7c92d7cae3ee273db9c97e"
 	VERIFY_SERVICE_SID = "VAe34d88e9c26c376010bba3daf29304cb"
 	client = twilio.NewRestClientWithParams(twilio.ClientParams{
 		Username: TWILIO_ACCOUNT_SID,
@@ -61,7 +61,7 @@ func SendOtp(phone string) (string, error) {
 func CheckOtp(phone, code string) error {
 
 	TWILIO_ACCOUNT_SID = "AC1cd1b8f006dcfa198971917f6c6c0ca6"
-	TWILIO_AUTH_TOKEN = "0595bde4b37def520fe1bfd8ac3d343b"
+	TWILIO_AUTH_TOKEN = "aa80d80bfd7c92d7cae3ee273db9c97e"
 	VERIFY_SERVICE_SID = "VAe34d88e9c26c376010bba3daf29304cb"
 	client = twilio.NewRestClientWithParams(twilio.ClientParams{
 		Username: TWILIO_ACCOUNT_SID,

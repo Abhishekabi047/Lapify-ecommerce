@@ -250,3 +250,13 @@ func (pl *AdminHandler) AdminProductlist(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"products": productlist})
 }
+
+func (ad *AdminHandler) Home(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"options": "SalesReport - User Mangement - Product Management -Order Management"})
+	dashboardresponse, err := ad.AdminUseCase.ExecuteAdminDashBoard()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"dashboard": dashboardresponse})
+}

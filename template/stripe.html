@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Confirmation</title>
+    <script src="https://js.stripe.com/v3/"></script>
+</head>
+<body>
+
+<h1>Payment Confirmation</h1>
+
+<form id="payment-form">
+    <div id="card-element">
+        <!-- A Stripe Element will be inserted here. -->
+    </div>
+
+    <!-- Used to display form errors. -->
+    <div id="card-errors" role="alert"></div>
+
+    <button type="submit">Confirm Payment</button>
+</form>
+
+<script>
+    var stripe = Stripe('pk_test_51OFC9hSJxogb8Is5VjqPFX1TvF2pRZ5JALc6w5llCX7PwpK49ad0Ps5LK07BjhOitfSKAGPX4msqSMYfrvYqLuz6007cDq1fNJ'); // Replace with your Stripe public key
+    var elements = stripe.elements();
+
+    // Create an instance of the card Element.
+    var card = elements.create('card');
+
+    // Add an instance of the card Element into the `card-element` div.
+    card.mount('#card-element');
+
+    // Handle real-time validation errors from the card Element.
+    card.addEventListener('change', function(event) {
+        var displayError = document.getElementById('card-errors');
+        if (event.error) {
+            displayError.textContent = event.error.message;
+        } else {
+            displayError.textContent = '';
+        }
+    });
+
+    // Handle form submission.
+    var form = document.getElementById('payment-form');
+    form.addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        // Confirm the payment on the client side.
+        stripe.confirmCardPayment('{{ .ClientSecret }}', {
+            payment_method: {
+                card: card,
+                // Add other payment method details if needed
+            }
+        }).then(function(result) {
+            if (result.error) {
+                // Display error to your user.
+                var errorElement = document.getElementById('card-errors');
+                errorElement.textContent = result.error.message;
+            } else {
+                // Payment succeeded, display a success message.
+                console.log(result.paymentIntent);
+                alert('Payment succeeded!');
+            }
+        });
+    });
+</script>
+
+</body>
+</html>
