@@ -84,42 +84,42 @@ func (tp *AdminUseCase) ExecuteTogglePermission(id int) error {
 	return nil
 }
 
-func (ad *AdminUseCase) ExecuteAdminDashBoard()(*entity.AdminDashboard,error) {
-	totalusers,newusers,err:=ad.adminRepo.GetUsers()
-	if err != nil{
-		return nil,errors.New("error fetching user count")
-	}
-
-	totalProducts,stocklessProducts,err:=ad.adminRepo.GetProducts()
-	if err != nil{
-		return nil,errors.New("error fetching products")
-	}
-
-	pendingOrders,returnedOrders,err:=ad.adminRepo.GetOrderByStatus()
-	if err != nil{
-		return nil,errors.New("error fetching order")
-	}
-
-	totalOrders,averageOrdervalue,err:=ad.adminRepo.GetOrders()
+func (ad *AdminUseCase) ExecuteAdminDashBoard() (*entity.AdminDashboard, error) {
+	totalusers, newusers, err := ad.adminRepo.GetUsers()
 	if err != nil {
-		return nil,errors.New("error fetching order ")
+		return nil, errors.New("error fetching user count")
 	}
 
-	totalrevenue,err:=ad.adminRepo.GetRevenue()
-	if err != nil{
-		return nil,errors.New("error fetching revenue")
+	totalProducts, stocklessProducts, err := ad.adminRepo.GetProducts()
+	if err != nil {
+		return nil, err
+	}
+
+	pendingOrders, returnedOrders, err := ad.adminRepo.GetOrderByStatus()
+	if err != nil {
+		return nil, errors.New("error fetching order")
+	}
+
+	totalOrders, averageOrdervalue, err := ad.adminRepo.GetOrders()
+	if err != nil {
+		return nil, err
+	}
+
+	totalrevenue, err := ad.adminRepo.GetRevenue()
+	if err != nil {
+		return nil, err
 	}
 
 	dashboardResponse := entity.AdminDashboard{
-		TotalUsers: totalusers,
-		NewUsers: newusers,
-		TotalProducts: totalProducts,
+		TotalUsers:        totalusers,
+		NewUsers:          newusers,
+		TotalProducts:     totalProducts,
 		StocklessProducts: stocklessProducts,
-		TotalOrders: totalOrders,
+		TotalOrders:       totalOrders,
 		AverageOrderValue: averageOrdervalue,
-		PendingOrders: pendingOrders,
-		ReturnOrders: returnedOrders,
-		TotalRevenue: totalrevenue,
+		PendingOrders:     pendingOrders,
+		ReturnOrders:      returnedOrders,
+		TotalRevenue:      totalrevenue,
 	}
-	return &dashboardResponse,nil
+	return &dashboardResponse, nil
 }

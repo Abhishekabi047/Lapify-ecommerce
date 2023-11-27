@@ -92,45 +92,45 @@ func (ar *AdminRepository) GetUsers() (int, int, error) {
 	return int(totalUsers), int(newUsers), nil
 }
 
-func (ar *AdminRepository) GetProducts() (int,int,error) {
+func (ar *AdminRepository) GetProducts() (int, int, error) {
 	var totalproducts int64
 	var stocklessProducts int64
-	if err:=ar.db.Model(&entity.Product{}).Where("removed =?",false).Count(&totalproducts).Error;err != nil{
-		return 0,0,err
+	if err := ar.db.Model(&entity.Product{}).Where("removed =?", false).Count(&totalproducts).Error; err != nil {
+		return 0, 0, errors.New("error getting total products")
 	}
-	if err := ar.db.Where(&entity.Inventory{}).Where("quantity=?",0).Count(&stocklessProducts).Error;err != nil{
-		return 0,0,err
+	if err := ar.db.Model(&entity.Inventory{}).Where("quantity=?", 0).Count(&stocklessProducts).Error; err != nil {
+		return 0, 0, err
 	}
-	return int(totalproducts),int(stocklessProducts),nil
+	return int(totalproducts), int(stocklessProducts), nil
 }
 
-func (ar *AdminRepository) GetOrders() (int,int,error){
+func (ar *AdminRepository) GetOrders() (int, int, error) {
 	var totalorders int64
-	var totalamount int64
+	var totalamount float64
 
-	if err:=ar.db.Model(&entity.Order{}).Count(&totalorders).Error;err != nil{
-		return 0,0,err
+	if err := ar.db.Model(&entity.Order{}).Count(&totalorders).Error; err != nil {
+		return 0, 0, err
 	}
-	if err :=ar.db.Model(&entity.Order{}).Select("AVG(total)").Row().Scan(&totalamount);err != nil{
-		return 0,0,err
+	if err := ar.db.Model(&entity.Order{}).Select("AVG(total)").Row().Scan(&totalamount); err != nil {
+		return 0, 0, err
 	}
-	return int(totalorders),int(totalamount),nil
+	return int(totalorders), int(totalamount), nil
 }
-func (ar *AdminRepository) GetOrderByStatus() (int,int,error){
-	var pendingorder,returnedorder int64
-	if err:= ar.db.Model(&entity.Order{}).Where("status =?","pending").Count(&pendingorder).Error;err != nil{
-		return 0,0,err
+func (ar *AdminRepository) GetOrderByStatus() (int, int, error) {
+	var pendingorder, returnedorder int64
+	if err := ar.db.Model(&entity.Order{}).Where("status =?", "pending").Count(&pendingorder).Error; err != nil {
+		return 0, 0, err
 	}
-	if err := ar.db.Model(&entity.Order{}).Where("status= ?","return").Count(&returnedorder).Error;err !=nil{
-		return 0,0,err
+	if err := ar.db.Model(&entity.Order{}).Where("status= ?", "return").Count(&returnedorder).Error; err != nil {
+		return 0, 0, err
 	}
-	return int(pendingorder),int(returnedorder),nil
+	return int(pendingorder), int(returnedorder), nil
 }
-func (ar *AdminRepository) GetRevenue() (int,error){
+func (ar *AdminRepository) GetRevenue() (int, error) {
 	var totalrevenue int64
 
-	if err:=ar.db.Model(&entity.Order{}).Where("SUM(total)").Row().Scan(&totalrevenue);err !=nil{
-		return 0,err
+	if err := ar.db.Model(&entity.Order{}).Where("status = ?", "confirmed").Select("COALESCE(SUM(total), 0)").Row().Scan(&totalrevenue); err != nil {
+		return 0, err
 	}
-	return int(totalrevenue),nil
+	return int(totalrevenue), nil
 }

@@ -28,8 +28,8 @@ func NewOrderHandler(OrderUseCase *usecase.OrderUseCase) *OrderHandler {
 func (oh *OrderHandler) PlaceOrder(c *gin.Context) {
 	userID, _ := c.Get("userId")
 	userid := userID.(int)
-	straddress := c.Param("addressid")
-	PaymentMethod := c.Param("payment")
+	straddress := c.PostForm("addressid")
+	PaymentMethod := c.PostForm("payment")
 	addressId, err := strconv.Atoi(straddress)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "strng conversion failed"})
@@ -48,10 +48,10 @@ func (oh *OrderHandler) PlaceOrder(c *gin.Context) {
 		if err1 != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err1.Error()})
 		}
-		c.HTML(http.StatusOK, "razor.html", gin.H{
-			"message": "make payment",
-			"razorId": razorId,
-			"orderid": orderId})
+		// c.HTML(http.StatusOK, "razor.html", gin.H{
+		// 	"message": "make payment",
+		// 	"razorId": razorId,
+		// 	"orderid": orderId})
 		c.JSON(http.StatusOK, gin.H{"message": "complete your razor pay through ", "razorId": razorId, "orderid": orderId, "userid": userid})
 	}
 }
@@ -164,8 +164,8 @@ func (op *OrderHandler) AdminCancelOrder(c *gin.Context) {
 }
 
 func (or *OrderHandler) SalesReportByDate(c *gin.Context) {
-	startDateStr := c.Param("start")
-	endDateStr := c.Param("end")
+	startDateStr := c.PostForm("start")
+	endDateStr := c.PostForm("end")
 	startDate, err := time.Parse("2-1-2006", startDateStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -185,7 +185,7 @@ func (or *OrderHandler) SalesReportByDate(c *gin.Context) {
 }
 
 func (or *OrderHandler) SalesReportByPeriod(c *gin.Context) {
-	period := c.Param("period")
+	period := c.PostForm("period")
 
 	report, err := or.OrderUseCase.ExecuteSalesReportByPeriod(period)
 	if err != nil {
@@ -195,9 +195,9 @@ func (or *OrderHandler) SalesReportByPeriod(c *gin.Context) {
 }
 
 func (or *OrderHandler) SalesReportByPayment(c *gin.Context) {
-	startDateStr := c.Param("start")
-	endDateStr := c.Param("end")
-	paymentmethod := c.Param("paymentmethod")
+	startDateStr := c.PostForm("start")
+	endDateStr := c.PostForm("end")
+	paymentmethod := c.PostForm("paymentmethod")
 	startDate, err := time.Parse("2-1-2006", startDateStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -218,9 +218,6 @@ func (or *OrderHandler) ExecutePaymentStripe(c *gin.Context) {
 	userId := UserID.(int)
 	straddress := c.PostForm("address")
 	addresid, err := strconv.Atoi(straddress)
-
-	fmt.Println("hello")
-	// var order entity.Order
 
 	stripe.Key = "sk_test_51OFC9hSJxogb8Is5XfYeIuKpqDOMKzH7NPVdwTZDVu0I6wc0sOX4CCZ66scJRKM7iYemPXk2D5fvRLKGrHFe60OF00psv6EYzW"
 
@@ -251,8 +248,8 @@ func (or *OrderHandler) ExecutePaymentStripe(c *gin.Context) {
 	})
 
 }
-var invoiceMap = make(map[string]*entity.Invoice)
 
+var invoiceMap = make(map[string]*entity.Invoice)
 
 func (cr *OrderHandler) HandleWebhook(c *gin.Context) {
 	var Resul *entity.Invoice
@@ -315,11 +312,11 @@ func (cr *OrderHandler) HandleWebhook(c *gin.Context) {
 		fmt.Println("res", Resul.OrderId)
 		if paymentIntent.Status == "succeeded" {
 			if Resul != nil {
-				// Access resul.ID and use it as needed
+
 				err := cr.OrderUseCase.UpdateInvoiceStatus(int(Resul.OrderId), "succesfull")
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "Error updating invoice status: %v\n", err)
-					// Handle the error as needed
+
 				}
 				fmt.Println("Invoice Created successfully succes")
 			}
@@ -339,15 +336,12 @@ func (cr *OrderHandler) HandleWebhook(c *gin.Context) {
 				return
 			}
 
-			// Log confirmation success
 			fmt.Println("PaymentIntent confirmed successfully")
 		} else {
-			// Log that PaymentIntent is already succeeded
+
 			fmt.Println("PaymentIntent is already succeeded")
 		}
 
-		// Then define and call a func to handle the successful payment intent.
-		// handlePaymentIntentSucceeded(paymentIntent)
 	case "payment_method.attached":
 		var paymentMethod stripe.PaymentMethod
 		err := json.Unmarshal(event.Data.Raw, &paymentMethod)
@@ -357,9 +351,7 @@ func (cr *OrderHandler) HandleWebhook(c *gin.Context) {
 			return
 		}
 	case "payment_intent.failed":
-		// Handle failed payment intents here
-		// You can create an invoice or perform other actions
-		// based on the failed payment intent.
+
 		var paymentIntent stripe.PaymentIntent
 		err := json.Unmarshal(event.Data.Raw, &paymentIntent)
 		if err != nil {
@@ -372,7 +364,7 @@ func (cr *OrderHandler) HandleWebhook(c *gin.Context) {
 
 		userid, _ := strconv.Atoi(userID)
 		addressid, _ := strconv.Atoi(addressID)
-		// Example: Create an invoice for the failed payment intent
+
 		invoice, err := cr.OrderUseCase.CreateInvoiceForFailedPayment(userid, addressid)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -380,9 +372,7 @@ func (cr *OrderHandler) HandleWebhook(c *gin.Context) {
 		}
 		Resul = invoice
 		fmt.Println("Invoice Created successfully fail")
-		// Then define and call a func to handle the successful attachment of a PaymentMethod.
-		// handlePaymentMethodAttached(paymentMethod)
-	// ... handle other event types
+
 	default:
 		fmt.Fprintf(os.Stderr, "Unhandled event type: %s\n", event.Type)
 
@@ -391,18 +381,18 @@ func (cr *OrderHandler) HandleWebhook(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "suscces", "invoice": Resul})
 
 }
-func (or *OrderHandler) OrderStatus(c *gin.Context){
-	strorderid:=c.PostForm("orderid")
-	orderid,err:=strconv.Atoi(strorderid)
-	if err != nil{
-		c.JSON(http.StatusBadRequest,gin.H{"errror":"str failed"})
+func (or *OrderHandler) OrderStatus(c *gin.Context) {
+	strorderid := c.PostForm("orderid")
+	orderid, err := strconv.Atoi(strorderid)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"errror": "str failed"})
 		return
 	}
-	order,err1:=or.OrderUseCase.ExecuteOrderid(orderid)
-	if err != nil{
-		c.JSON(http.StatusBadRequest,gin.H{"error":err1.Error()})
+	order, err1 := or.OrderUseCase.ExecuteOrderid(orderid)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err1.Error()})
 		return
 	}
-	c.JSON(http.StatusOK,gin.H{"order":order})
+	c.JSON(http.StatusOK, gin.H{"order": order})
 
 }

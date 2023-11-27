@@ -133,9 +133,9 @@ func (ac *UserHandler) AddToCart(c *gin.Context) {
 	}
 	userid := userID.(int)
 	fmt.Println("userId", userid)
-	product := c.Param("category")
-	strid := c.Param("productid")
-	strquantity := c.Param("quantity")
+	product := c.PostForm("category")
+	strid := c.PostForm("productid")
+	strquantity := c.PostForm("quantity")
 	id, err := strconv.Atoi(strid)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "str convertion failed"})
@@ -163,8 +163,8 @@ func (ac *UserHandler) AddToCart(c *gin.Context) {
 func (rc *UserHandler) RemoveFromCart(c *gin.Context) {
 	userID, _ := c.Get("userId")
 	userid := userID.(int)
-	id := c.Param("id")
-	product := c.Param("product")
+	id := c.PostForm("id")
+	product := c.PostForm("product")
 	Id, err := strconv.Atoi(id)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "str convertion failed"})

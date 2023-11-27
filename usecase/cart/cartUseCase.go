@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"errors"
-	"fmt"
 	"log"
 	"project/domain/entity"
 	repository "project/repository/cart"
@@ -45,10 +44,10 @@ func (cu *CartUseCase) ExecuteAddToCart(product string, id int, quantity int, us
 		ProductName: prod.Name,
 		Price:       int(prod.Price),
 	}
-	existingProduct, err := cu.cartRepo.GetByName(prod.Name, cartid)
-	if err != nil {
-		fmt.Println(err)
-	}
+	existingProduct, _ := cu.cartRepo.GetByName(prod.Name, cartid)
+	// if err != nil {
+	// 	fmt.Println(err)
+	// }
 	if existingProduct == nil {
 		err := cu.cartRepo.CreateCartItem(cartitem)
 		if err != nil {
@@ -250,15 +249,14 @@ func (cu *CartUseCase) ExecuteCart(userid int) (*entity.Cart, error) {
 	}
 }
 
-func (cu *CartUseCase) ExecuteCartitem(userid int)(*[]entity.CartItem,error){
-	userCart,err:=cu.cartRepo.GetByUserid(userid)
-	if err != nil{
+func (cu *CartUseCase) ExecuteCartitem(userid int) (*[]entity.CartItem, error) {
+	userCart, err := cu.cartRepo.GetByUserid(userid)
+	if err != nil {
 		return nil, errors.New("Failed to find user")
 	}
-	cartitems,err:=cu.cartRepo.GetAllCartItems(int(userCart.ID))
+	cartitems, err := cu.cartRepo.GetAllCartItems(int(userCart.ID))
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
-	return &cartitems,nil
+	return &cartitems, nil
 }
-

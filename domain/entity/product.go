@@ -10,7 +10,7 @@ type Product struct {
 	gorm.Model `json:"-"`
 	ID         int    `gorm:"primarykey"`
 	Name       string `json:"name" validate:"required"`
-	Price      int    `json:"price" validate:"required,numeric"`
+	Price      int    `json:"price" validate:"required,numeric,positive"`
 	Size       string `json:"size" validate:"required"`
 	Removed    bool   `json:"removed"`
 	Category   int    `gorm:"foreignKey:ID;references:ID" validate:"required,numeric"`

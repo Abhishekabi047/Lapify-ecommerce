@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"project/domain/entity"
 	repository "project/repository/product"
+	"strconv"
 
 	"github.com/go-playground/validator/v10"
 	"gorm.io/gorm"
@@ -42,6 +43,7 @@ func (pu *ProductUseCase) ExecuteProductDetails(id int) (*entity.Product, *entit
 
 func (pu *ProductUseCase) ExecuteCreateProduct(product entity.Product) (int, error) {
 	validate := validator.New()
+	validate.RegisterValidation("positive", PositiveNumeric)
 	if err := validate.Struct(product); err != nil {
 		if _, ok := err.(*validator.InvalidValidationError); ok {
 			return 0, err
@@ -54,6 +56,8 @@ func (pu *ProductUseCase) ExecuteCreateProduct(product entity.Product) (int, err
 				errorMsg += fmt.Sprintf("%s is required; ", e.Field())
 			case "numeric":
 				errorMsg += fmt.Sprintf("%s should contain only numeric characters; ", e.Field())
+			case "positive":
+				errorMsg += fmt.Sprintf("%s should be a positive numeric value; ", e.Field())
 			default:
 				errorMsg += fmt.Sprintf("%s has an invalid value; ", e.Field())
 			}
@@ -77,6 +81,14 @@ func (pu *ProductUseCase) ExecuteCreateProduct(product entity.Product) (int, err
 	} else {
 		return productid, nil
 	}
+}
+
+func PositiveNumeric(fl validator.FieldLevel) bool {
+	value, err := strconv.ParseFloat(fl.Field().String(), 64)
+	if err != nil {
+		return false
+	}
+	return value >= 0
 }
 
 func (pu *ProductUseCase) ExecuteCreateProductDetails(details entity.ProductDetails) error {
@@ -112,9 +124,10 @@ func (pu *ProductUseCase) ExecuteCreateProductDetails(details entity.ProductDeta
 
 func (pt *ProductUseCase) ExecuteEditProduct(product entity.Product, id int) error {
 	validate := validator.New()
+	validate.RegisterValidation("positive", PositiveNumeric)
 	if err := validate.Struct(product); err != nil {
 		if _, ok := err.(*validator.InvalidValidationError); ok {
-			return  err
+			return err
 		}
 		errors := err.(validator.ValidationErrors)
 		errorMsg := "Validation failed: "
@@ -124,11 +137,13 @@ func (pt *ProductUseCase) ExecuteEditProduct(product entity.Product, id int) err
 				errorMsg += fmt.Sprintf("%s is required; ", e.Field())
 			case "numeric":
 				errorMsg += fmt.Sprintf("%s should contain only numeric characters; ", e.Field())
+			case "positive":
+				errorMsg += fmt.Sprintf("%s should be a positive numeric value; ", e.Field())
 			default:
 				errorMsg += fmt.Sprintf("%s has an invalid value; ", e.Field())
 			}
 		}
-		return  fmt.Errorf(errorMsg)
+		return fmt.Errorf(errorMsg)
 	}
 	existingProduct, err := pt.productRepo.GetProductById(id)
 	if err != nil {

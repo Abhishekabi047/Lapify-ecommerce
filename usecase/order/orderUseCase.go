@@ -43,7 +43,7 @@ func (or *OrderUseCase) ExecuteOrderCod(userid int, address int) (*entity.Invoic
 			cartitem.ProductId, cartitem.Category, cartitem.Quantity, cartitem.Price)
 	}
 
-	useraddress, err := or.userRepo.GetAddressById(userid)
+	useraddress, err := or.userRepo.GetAddressByID(userid)
 	if err != nil {
 		return nil, errors.New("address not found")
 	}
@@ -216,7 +216,7 @@ func (rp *OrderUseCase) ExecuteRazorPay(userId, address int, c *gin.Context) (st
 	if err != nil {
 		return "", 0, errors.New("Errro creating order")
 	}
-	fmt.Println("body", body)
+
 	razorId, _ := body["id"].(string)
 	Total := cart.TotalPrize
 	order := &entity.Order{
@@ -241,6 +241,16 @@ func (rp *OrderUseCase) ExecuteRazorPay(userId, address int, c *gin.Context) (st
 			Prize:     cartItem.Price,
 		}
 		orderItems = append(orderItems, orderitem)
+		inventory := entity.Inventory{
+			ProductId:       cartItem.ProductId,
+			ProductCategory: cartItem.Category,
+			Quantity:        cartItem.Quantity,
+		}
+
+		err := rp.productRepo.DecreaseProductQuantity(&inventory)
+		if err != nil {
+			return "", 0, err
+		}
 	}
 	err3 := rp.orderRepo.CreateOrderItems(orderItems)
 	if err3 != nil {
@@ -257,12 +267,13 @@ func (rv *OrderUseCase) ExecuteRazorPayVerification(signature, razorid, PaymentI
 	err1 := utils.RazorPaymentVerification(signature, razorid, PaymentId)
 	if err1 != nil {
 		result.PaymentStatus = "failed"
+		result.PaymentId = PaymentId
 		err2 := rv.orderRepo.Update(result)
 		if err2 != nil {
 			return nil, errors.New("payment updation failed")
 		}
 	}
-	result.PaymentStatus = "succesful"
+	result.PaymentStatus = "succesfull"
 	result.PaymentId = PaymentId
 	err3 := rv.orderRepo.Update(result)
 	if err3 != nil {
@@ -284,10 +295,11 @@ func (rv *OrderUseCase) ExecuteRazorPayVerification(signature, razorid, PaymentI
 		Quantity:    userCart.ProductQuantity,
 		Price:       float64(Total),
 		Payment:     "razorpay",
-		Status:      "succesful",
-		PaymentId:   "nil",
+		Status:      result.PaymentStatus,
+		PaymentId:   PaymentId,
 		Remark:      "",
 	}
+
 	Invoice, err := rv.orderRepo.CreateInvoice(InvoiceData)
 	if err != nil {
 		return nil, errors.New("Invoice creating failed")
@@ -296,14 +308,13 @@ func (rv *OrderUseCase) ExecuteRazorPayVerification(signature, razorid, PaymentI
 	if err4 != nil {
 		return nil, errors.New("removing cart items failed")
 	}
-	userCart = &entity.Cart{
-		OfferPrize:      0,
-		TotalPrize:      0,
-		ProductQuantity: 0,
-	}
-	err5 := rv.cartRepo.UpdateCart(userCart)
-	if err5 != nil {
-		return nil, errors.New("Updating cart failed")
+	userCart.ProductQuantity = 0
+	userCart.TotalPrize = 0
+	userCart.OfferPrize = 0
+	userCart.ProductQuantity = 0
+	err = rv.cartRepo.UpdateCart(userCart)
+	if err != nil {
+		return nil, errors.New("error upadting cart")
 	}
 	return Invoice, nil
 
@@ -359,7 +370,7 @@ func (or *OrderUseCase) ExecuteInvoiceStripe(userid int, address int) (*entity.I
 			cartitem.ProductId, cartitem.Category, cartitem.Quantity, cartitem.Price)
 	}
 
-	useraddress, err := or.userRepo.GetAddressById(userid)
+	useraddress, err := or.userRepo.GetAddressByID(userid)
 	if err != nil {
 		return nil, errors.New("address not found")
 	}
@@ -401,35 +412,34 @@ func (or *OrderUseCase) ExecuteInvoiceStripe(userid int, address int) (*entity.I
 			Prize:     cartitem.Price,
 		}
 		orderitems = append(orderitems, orderitem)
-		// inventory := entity.Inventory{
-		// 	ProductId:       cartitem.ProductId,
-		// 	ProductCategory: cartitem.Category,
-		// 	Quantity:        cartitem.Quantity,
-		// }
-		// // fmt.Println("prod:", cartitem.ProductId)
-		// err := or.productRepo.DecreaseProductQuantity(&inventory)
-		// if err != nil {
-		// 	return nil, err
-		// }
+		inventory := entity.Inventory{
+			ProductId:       cartitem.ProductId,
+			ProductCategory: cartitem.Category,
+			Quantity:        cartitem.Quantity,
+		}
+		err := or.productRepo.DecreaseProductQuantity(&inventory)
+		if err != nil {
+			return nil, err
+		}
 	}
 	err1 := or.orderRepo.CreateOrderItems(orderitems)
 	if err1 != nil {
 		return nil, errors.New("failed to create order items")
 	}
 
-	// 	err = or.cartRepo.RemoveCartItems(int(cart.ID))
-	// 	if err != nil {
-	// 		return nil, errors.New("removing cart failed")
-	// 	}
-	// 	cart.ProductQuantity = 0
-	// 	cart.TotalPrize = 0
-	// 	cart.OfferPrize = 0
-	// 	cart.ProductQuantity = 0
-	// 	err = or.cartRepo.UpdateCart(cart)
-	// 	if err != nil {
-	// 		return nil, errors.New("error upadting cart")
+	err = or.cartRepo.RemoveCartItems(int(cart.ID))
+	if err != nil {
+		return nil, errors.New("removing cart failed")
+	}
+	cart.ProductQuantity = 0
+	cart.TotalPrize = 0
+	cart.OfferPrize = 0
+	cart.ProductQuantity = 0
+	err = or.cartRepo.UpdateCart(cart)
+	if err != nil {
+		return nil, errors.New("error upadting cart")
 
-	// }
+	}
 	return invoice, nil
 }
 
@@ -497,7 +507,7 @@ func (or *OrderUseCase) CreateInvoiceForFailedPayment(userid int, address int) (
 			ProductCategory: cartitem.Category,
 			Quantity:        cartitem.Quantity,
 		}
-		// fmt.Println("prod:", cartitem.ProductId)
+
 		err := or.productRepo.DecreaseProductQuantity(&inventory)
 		if err != nil {
 			return nil, err
@@ -529,11 +539,7 @@ func (uc *OrderUseCase) UpdateInvoiceStatus(orderID int, status string) error {
 	if err != nil {
 		return err
 	}
-
-	// Update the status.
 	invoice.PaymentStatus = status
-
-	// Save the updated invoice back to the database.
 	err = uc.orderRepo.Update(invoice)
 	if err != nil {
 		return err

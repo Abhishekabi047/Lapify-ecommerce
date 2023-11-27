@@ -210,7 +210,7 @@ func (ep *AdminHandler) EditProduct(c *gin.Context) {
 	}
 	err1 := ep.ProductUseCase.ExecuteEditProduct(product, id)
 	if err1 != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "eror editing"})
+		c.JSON(http.StatusBadRequest, gin.H{"error":err1.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"succes": "product edit success"})

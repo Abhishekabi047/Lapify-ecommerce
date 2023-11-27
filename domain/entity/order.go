@@ -35,13 +35,12 @@ type Invoice struct {
 	Remark      string  `json:"remark" gorm:"default lapify_festiv"`
 }
 type SalesReport struct {
-	TotalSales    float64
-	TotalOrders   int64
-	AverageOrder  float64
-	PaymentMethod string
+	TotalSales   float64
+	TotalOrders  int64
+	AverageOrder float64
 }
 type Charge struct {
-	gorm.Model  `json:"-"`
+	gorm.Model   `json:"-"`
 	Amount       int64  `json:"amount"`
 	ReceiptEmail string `json:"receiptMail"`
 	ProductName  string `json:"productName"`

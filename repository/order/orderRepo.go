@@ -102,6 +102,7 @@ func (or *OrderRepository) GetByRazorId(razorId string) (*entity.Order, error) {
 func (or *OrderRepository) GetByDate(startdate, enddate time.Time) (*entity.SalesReport, error) {
 	var order []entity.Order
 	var report entity.SalesReport
+	enddate = enddate.Add(+24 * time.Hour)
 
 	if err := or.db.Model(&order).Where("created_at BETWEEN ? AND ? AND status =?", startdate, enddate, "confirmed").Select("SUM(total) as total_sales").Scan(&report).Error; err != nil {
 		return nil, err
@@ -118,6 +119,7 @@ func (or *OrderRepository) GetByDate(startdate, enddate time.Time) (*entity.Sale
 }
 func (or *OrderRepository) GetByPaymentMethod(startdate, enddate time.Time, paymentmethod string) (*entity.SalesReport, error) {
 	var order []entity.Order
+	enddate = enddate.Add(+24 * time.Hour)
 	var report entity.SalesReport
 
 	if err := or.db.Model(&order).Where("created_at BETWEEN ? AND ? AND status =? AND payment_method=?", startdate, enddate, "confirmed", paymentmethod).Select("SUM(total) as total_sales").Scan(&report).Error; err != nil {

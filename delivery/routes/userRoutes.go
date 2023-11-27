@@ -24,7 +24,7 @@ func UserRouter(r *gin.Engine, userHandler *handlers.UserHandler) *gin.Engine {
 	r.GET("/user/products", m.UserRetreiveCookie, userHandler.Products)
 	r.GET("/user/products/details/:productid", m.UserRetreiveCookie, userHandler.ProductDetails)
 
-	r.POST("/user/cart/:category/:productid/:quantity", m.UserRetreiveCookie, userHandler.AddToCart)
+	r.POST("/user/cart", m.UserRetreiveCookie, userHandler.AddToCart)
 	r.DELETE("user/cart/:product/:id", m.UserRetreiveCookie, userHandler.RemoveFromCart)
 	r.GET("/user/cart", m.UserRetreiveCookie, userHandler.Cart)
 	r.GET("/user/cartlist", m.UserRetreiveCookie, userHandler.CartItems)
