@@ -23,6 +23,9 @@ func UserRouter(r *gin.Engine, userHandler *handlers.UserHandler) *gin.Engine {
 
 	r.GET("/user/products", m.UserRetreiveCookie, userHandler.Products)
 	r.GET("/user/products/details/:productid", m.UserRetreiveCookie, userHandler.ProductDetails)
+	r.GET("/user/searcproducts", m.UserRetreiveCookie, userHandler.SearchProduct)
+	r.GET("/user/sortbycategory", m.UserRetreiveCookie, userHandler.SortByCategory)
+	r.GET("/user/sortbyfilter", m.UserRetreiveCookie, userHandler.SortByFilter)
 
 	r.POST("/user/cart", m.UserRetreiveCookie, userHandler.AddToCart)
 	r.DELETE("user/cart/:product/:id", m.UserRetreiveCookie, userHandler.RemoveFromCart)
@@ -31,6 +34,7 @@ func UserRouter(r *gin.Engine, userHandler *handlers.UserHandler) *gin.Engine {
 	r.POST("/user/wishlist/:category/:productid", m.UserRetreiveCookie, userHandler.AddToWishList)
 	r.DELETE("/user/wishlist/:product/:id", m.UserRetreiveCookie, userHandler.RemoveFromWishlist)
 	r.GET("/user/wishlist", m.UserRetreiveCookie, userHandler.ViewWishlist)
+	r.POST("/user/applycoupon", m.UserRetreiveCookie, userHandler.ApplyCoupon)
 	r.POST("/logout", userHandler.Logout)
 	return r
 }

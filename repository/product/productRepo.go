@@ -137,7 +137,7 @@ func (pr *ProductRepository) CreateCoupon(coupon *entity.Coupon) error {
 func (pr *ProductRepository) GetAllCoupons() (*[]entity.Coupon, error) {
 	var coupon []entity.Coupon
 	currenttime := time.Now()
-	err := pr.db.Where("valid_until=?", currenttime).Find(&coupon).Error
+	err := pr.db.Where("validuntil > ?", currenttime).Find(&coupon).Error
 	if err != nil {
 		return nil, err
 	}
@@ -202,4 +202,77 @@ func (pr *ProductRepository) DecreaseProductQuantity(product *entity.Inventory) 
 		return err
 	}
 	return nil
+}
+
+func (pr *ProductRepository) GetCouponByCategory(category string) (*entity.Coupon, error) {
+	coupon := &entity.Coupon{}
+	err := pr.db.Where("category=?", category).First(coupon).Error
+	if err != nil {
+		return nil, err
+	}
+	return coupon, nil
+}
+
+func (pr *ProductRepository) DeleteCoupon(code string) error {
+	err := pr.db.Where("code=?", code).Delete(&entity.Coupon{}).Error
+	if err != nil {
+		return errors.New("coudnt delete")
+	}
+	return nil
+}
+
+func (ar *ProductRepository) GetProductsBySearch(offset, limit int, search string) ([]entity.Product, error) {
+	var products []entity.Product
+
+	err := ar.db.Select("id, name, price, category, image_url, size").Where("name LIKE ?", search+"%").Offset(offset).Limit(limit).Find(&products).Error
+	if err != nil {
+		return nil, errors.New("record not found")
+	}
+	return products, nil
+}
+
+func (ar *ProductRepository) GetProductsByCategory(offset, limit, id int) ([]entity.Product, error) {
+	var product []entity.Product
+
+	err := ar.db.Where("category=? AND removed =?", id, false).Offset(offset).Limit(limit).Find(&product).Error
+	if err != nil {
+		return nil, errors.New("record not found")
+	}
+	return product, nil
+}
+
+func (ar *ProductRepository) GetProductsByFilter(minPrize, maxPrize, category int, size string) ([]entity.Product, error) {
+	var products []entity.Product
+
+	query := ar.db
+
+	if size != "" {
+		query = query.Where("size=?", size)
+	}
+	if minPrize > 0 {
+		query = query.Where("price >= ?", minPrize)
+	}
+	if maxPrize > 0 {
+		query = query.Where("price <= ?", maxPrize)
+	}
+	if category > 0 {
+		query = query.Where("category = ?", category)
+	}
+	query = query.Where("removed= ?", false)
+	err := query.Find(&products).Error
+	if err != nil {
+		return nil, err
+	}
+	return products, nil
+}
+
+func (pr *ProductRepository) GetAllOffers() ([]entity.Offer, error) {
+	var offer []entity.Offer
+	currenttime := time.Now()
+	err := pr.db.Where("valid_until > ?", currenttime).Find(&offer).Error
+	if err != nil {
+		return nil, errors.New("record not found")
+	}
+	return offer, nil
+
 }

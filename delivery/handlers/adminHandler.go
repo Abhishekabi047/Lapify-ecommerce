@@ -210,7 +210,7 @@ func (ep *AdminHandler) EditProduct(c *gin.Context) {
 	}
 	err1 := ep.ProductUseCase.ExecuteEditProduct(product, id)
 	if err1 != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error":err1.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err1.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"succes": "product edit success"})
@@ -259,4 +259,70 @@ func (ad *AdminHandler) Home(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"dashboard": dashboardresponse})
+}
+
+func (ad *AdminHandler) AddCoupon(c *gin.Context) {
+	var coupon entity.Coupon
+
+	if err := c.ShouldBindJSON(&coupon); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	exisitingCode, _ := ad.ProductUseCase.ExecuteGetCouponByCode(coupon.Code)
+
+	if exisitingCode != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "code already exists"})
+		return
+	}
+
+	err := ad.ProductUseCase.ExecuteAddCoupon(&coupon)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "coupon added succesfully"})
+}
+
+func (ad *AdminHandler) AllCoupons(c *gin.Context) {
+	couponlist, err := ad.ProductUseCase.ExecuteAvailableCoupons()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"errro": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"avialable coupons": couponlist})
+}
+
+func (ad *AdminHandler) DeleteCoupon(c *gin.Context) {
+	code := c.PostForm("code")
+	err := ad.ProductUseCase.ExecuteDeleteCoupon(code)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "coupon succesfully deleted"})
+}
+
+func (ad *AdminHandler) AddOffer(c *gin.Context) {
+	var offer entity.Offer
+
+	if err := c.ShouldBindJSON(&offer); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	err := ad.ProductUseCase.ExecuteAddOffer(&offer)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "offer added sussefully"})
+}
+
+func (ad *AdminHandler) AllOffer(c *gin.Context) {
+
+	offerlist, err := ad.ProductUseCase.ExecuteGetOffers()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"offers": offerlist})
 }

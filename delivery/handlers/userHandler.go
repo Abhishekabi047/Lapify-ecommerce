@@ -370,3 +370,87 @@ func (da *UserHandler) DeleteAddress(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"success": "address Deleted succesfully"})
 }
+
+func (or *UserHandler) SearchProduct(c *gin.Context) {
+	pagestr := c.DefaultQuery("page", "1")
+	limistr := c.DefaultQuery("limit", "5")
+	search := c.Query("search")
+	page, err := strconv.Atoi(pagestr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "str convertion failed"})
+		return
+	}
+	limit, err := strconv.Atoi(limistr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "str convertion failed"})
+		return
+	}
+	productlist, err := or.ProductUseCase.ExecuteProductSearch(page, limit, search)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	responselist := make([]entity.Product, len(productlist))
+	for i, product := range productlist {
+		responselist[i] = entity.Product{
+			ID:       product.ID,
+			Name:     product.Name,
+			Price:    product.Price,
+			Category: product.Category,
+			ImageURL: product.ImageURL,
+			Size:     product.Size,
+		}
+	}
+	c.JSON(http.StatusOK, gin.H{"products": responselist})
+}
+
+func (sc *UserHandler) SortByCategory(c *gin.Context) {
+	pagestr := c.DefaultQuery("page", "1")
+	limitstr := c.DefaultQuery("limit", "5")
+	ID := c.Query("id")
+	id, err := strconv.Atoi(ID)
+	page, err := strconv.Atoi(pagestr)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"error": "str conv failed"})
+		return
+	}
+	limit, err := strconv.Atoi(limitstr)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"error": "str conv failed"})
+		return
+	}
+	productlist, err1 := sc.ProductUseCase.ExecuteProductByCategory(page, limit, id)
+	if err1 != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err1.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"Products": productlist})
+}
+
+func (sc *UserHandler) SortByFilter(c *gin.Context) {
+	strminPrize:=c.Query("minprize")
+	strmaxPrize:=c.Query("maxprize")
+	strcategory:=c.Query("category")
+	size:=c.Query("size")
+	minPrize,_:=strconv.Atoi(strminPrize)
+	maxPrize,_:=strconv.Atoi(strmaxPrize)
+	category,_:=strconv.Atoi(strcategory)
+	productlist,err1:=sc.ProductUseCase.ExecuteProductFilter(size,minPrize,maxPrize,category)
+	if err1 != nil{
+		c.JSON(http.StatusBadRequest,gin.H{"error":err1.Error()})
+		return
+	}
+	c.JSON(http.StatusOK,gin.H{"products":productlist})
+}
+func (sc *UserHandler) ApplyCoupon(c *gin.Context){
+	userID,_:=c.Get("userId")
+	userid:=userID.(int)
+	code:=c.PostForm("code")
+
+	totaloffer,err:=sc.CartUSeCase.ExecuteApplyCoupon(userid,code)
+	if err != nil{
+		c.JSON(http.StatusBadRequest,gin.H{"error":err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK,gin.H{"offer prize":totaloffer,"offer":"applied succesfully"})
+}

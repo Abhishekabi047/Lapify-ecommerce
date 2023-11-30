@@ -44,8 +44,9 @@ type Category struct {
 }
 
 type Coupon struct {
+	gorm.Model `json:"-"`
 	Id         int       `json:"id"`
-	Code       string    `json:"code"`
+	Code       string    `json:"code"  gorm:"unique" `
 	Type       string    `json:"type"`
 	Amount     int       `json:"amount"`
 	ValidFrom  time.Time `json:"-"`
@@ -53,10 +54,10 @@ type Coupon struct {
 	UsageLimit int       `json:"usage_limit"`
 	UsedCount  int       `json:"usedcount"`
 	Category   int       `json:"category"`
-	Adminid    int       `json:"-"`
 }
 
 type Offer struct {
+	gorm.Model `json:"-"`
 	Id         int       `json:"-" gorm:"primarykey"`
 	Name       string    `json:"name"`
 	Type       string    `json:"type"`
@@ -67,7 +68,7 @@ type Offer struct {
 	UsageLimit int       `json:"usage_limit"`
 	UsedCount  int       `json:"-"`
 	Category   int       `json:"category"`
-	AdminId    int       `json:"-"`
+	ProductId  int       `json:"product_id"`
 }
 
 type UsedCoupon struct {

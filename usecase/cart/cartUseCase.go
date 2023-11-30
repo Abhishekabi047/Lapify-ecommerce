@@ -181,15 +181,17 @@ func (c *CartUseCase) ExecuteApplyCoupon(userId int, code string) (int, error) {
 	if err != nil {
 		return 0, errors.New("coupon not found")
 	}
-	cartitems, err := c.cartRepo.GetAllCartItems(int(usercart.ID))
-	if err != nil {
-		return 0, errors.New("user cart item not found")
-	}
-	for _, cartitem := range cartitems {
-		if cartitem.Category == coupon.Category {
-			totalprize += int(cartitem.Price) * cartitem.Quantity
-		}
-	}
+	// cartitems, err := c.cartRepo.GetAllCartItems(int(usercart.ID))
+	// if err != nil {
+	// 	return 0, errors.New("user cart item not found")
+	// }
+	// for _, cartitem := range cartitems {
+	// 	if cartitem.Category == coupon.Category {
+	// 		totalprize += int(cartitem.Price) * cartitem.Quantity
+	// 	}
+	// }
+	totalprize = usercart.TotalPrize
+
 	if totalprize > 0 {
 		if coupon.Type == "percentage" {
 			totaloffer = totalprize / coupon.Amount
