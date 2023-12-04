@@ -36,8 +36,6 @@ func (uh *AdminHandler) AdminLoginWithPassword(c *gin.Context) {
 	email, _ := payload["email"].(string)
 	password, _ := payload["password"].(string)
 
-	fmt.Println(email, password)
-
 	adminId, err := uh.AdminUseCase.ExecuteAdminLoginWithPassword(email, password)
 	if err != nil {
 		fmt.Printf("Authentication failed: %v\n", err)
@@ -151,15 +149,19 @@ func (et *AdminHandler) DeleteCategory(c *gin.Context) {
 
 func (cp *AdminHandler) CreateProduct(c *gin.Context) {
 	var input entity.ProductInput
-	if err := c.ShouldBindJSON(&input); err != nil {
+	if err := c.ShouldBind(&input); err != nil {
+		fmt.Println("err", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	
+	image, _ := c.FormFile("image")
 	category, err := cp.ProductUseCase.ExecuteGetCategory(entity.Category{ID: input.Category})
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	
 	product := &entity.Product{
 		Name:     input.Name,
 		Price:    input.Price,
@@ -167,7 +169,7 @@ func (cp *AdminHandler) CreateProduct(c *gin.Context) {
 		Category: category,
 		ImageURL: input.ImageURL,
 	}
-	productId, err := cp.ProductUseCase.ExecuteCreateProduct(*product)
+	productId, err := cp.ProductUseCase.ExecuteCreateProduct(*product,image)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -325,4 +327,46 @@ func (ad *AdminHandler) AllOffer(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"offers": offerlist})
+}
+
+func (ad *AdminHandler) AddProductOffer(c *gin.Context) {
+	strpro := c.PostForm("productid")
+	stroffer := c.PostForm("offer")
+	productid, err := strconv.Atoi(strpro)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "str conv failed"})
+		return
+	}
+	offer, err := strconv.Atoi(stroffer)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "str conv failed"})
+		return
+	}
+	prod, err1 := ad.ProductUseCase.ExecuteAddProductOffer(productid, offer)
+	if err1 != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err1.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"offer added ": prod})
+}
+
+func (ad *AdminHandler) AddCategoryOffer(c *gin.Context) {
+	strcat := c.PostForm("categoryid")
+	stroffer := c.PostForm("offer")
+	categoryid, err := strconv.Atoi(strcat)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "str1 conv failed"})
+		return
+	}
+	offer, err := strconv.Atoi(stroffer)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "str conv failed"})
+		return
+	}
+	productlist, err1 := ad.ProductUseCase.ExecuteCategoryOffer(categoryid, offer)
+	if err1 != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err1.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"offer addded": productlist})
 }

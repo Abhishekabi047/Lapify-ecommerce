@@ -1,10 +1,13 @@
 package usecase
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"math/rand"
 	"regexp"
 
+	"project/config"
 	"project/delivery/models"
 	"project/domain/entity"
 	"project/domain/utils"
@@ -16,10 +19,11 @@ import (
 
 type UserUseCase struct {
 	userRepo *repository.UserRepository
+	otp      *config.OTP
 }
 
-func NewUser(userRepo *repository.UserRepository) *UserUseCase {
-	return &UserUseCase{userRepo: userRepo}
+func NewUser(userRepo *repository.UserRepository, otp *config.OTP) *UserUseCase {
+	return &UserUseCase{userRepo: userRepo, otp: otp}
 }
 
 func (us *UserUseCase) ExecuteSignup(user entity.User) (*entity.User, error) {
@@ -109,7 +113,14 @@ func (uu *UserUseCase) ExecuteSignupWithOtp(user models.Signup) (string, error) 
 		return "", err
 	}
 	user.Password = string(hashedPassword)
-	key, err := utils.SendOtp(user.Phone)
+	if user.ReferalCode != "" {
+		_, err := uu.userRepo.GetByReferalCode(user.ReferalCode)
+		if err != nil {
+			return "", errors.New("Invalid referal code")
+		}
+	}
+
+	key, err := utils.SendOtp(user.Phone, *uu.otp)
 	if err != nil {
 		return "", err
 	} else {
@@ -135,7 +146,7 @@ func (uu *UserUseCase) ExecuteSignupOtpValidation(key string, otp string) error 
 	if err != nil {
 		return errors.New("error in phone")
 	}
-	err = utils.CheckOtp(result.Phone, otp)
+	err = utils.CheckOtp(result.Phone, otp, *uu.otp)
 	if err != nil {
 		return err
 	} else {
@@ -148,11 +159,37 @@ func (uu *UserUseCase) ExecuteSignupOtpValidation(key string, otp string) error 
 		err1 := uu.userRepo.Create(newUser)
 		if err1 != nil {
 			return errors.New("error while crearting user")
-		} else {
-			return nil
+		}
+		if user.ReferalCode != "" {
+		referduser, err := uu.userRepo.GetByReferalCode(user.ReferalCode)
+		if err != nil{
+			return err
+		}
+		if referduser != nil {
+			referduser.Wallet = referduser.Wallet + 500
+			err = uu.userRepo.Update(referduser)
+			newUser.Wallet = 500
+		}
+	}
+		randomBytes := make([]byte, 3)
+		_, err2 := rand.Read(randomBytes)
+		if err2 != nil {
+			return err
 		}
 
+		referralCode := hex.EncodeToString(randomBytes)
+
+		newUser.ReferalCode = referralCode
+		
+
+		err3 := uu.userRepo.Update(newUser)
+		if err3 != nil {
+			return errors.New("user update failed")
+		}
+
+		return nil
 	}
+
 }
 
 func (uu *UserUseCase) ExecuteLoginWithPassword(phone, password string) (int, error) {
@@ -196,7 +233,7 @@ func (u *UserUseCase) ExecuteLogin(phone string) (string, error) {
 	if permission == false {
 		return "", errors.New("permission denied")
 	}
-	key, err := utils.SendOtp(phone)
+	key, err := utils.SendOtp(phone, *u.otp)
 	if err != nil {
 		return "", err
 	} else {
@@ -220,7 +257,7 @@ func (uu *UserUseCase) ExecuteOtpValidation(key, otp string) (*entity.User, erro
 	if err != nil {
 		return nil, err
 	}
-	err1 := utils.CheckOtp(result.Phone, otp)
+	err1 := utils.CheckOtp(result.Phone, otp, *uu.otp)
 	if err1 != nil {
 		return nil, err
 	}
@@ -308,7 +345,7 @@ func (uu *UserUseCase) ExecuteChangePassword(userid int) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	key, err1 := utils.SendOtp(user.Phone)
+	key, err1 := utils.SendOtp(user.Phone, *uu.otp)
 	if err1 != nil {
 		return "", err1
 	} else {
@@ -327,7 +364,7 @@ func (uu *UserUseCase) ExecuteOtpValidationPassword(password string, otp string,
 	if err != nil {
 		return err
 	}
-	err = utils.CheckOtp(user.Phone, otp)
+	err = utils.CheckOtp(user.Phone, otp, *uu.otp)
 	if err != nil {
 		return err
 	}

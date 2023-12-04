@@ -20,6 +20,8 @@ func OrderRouter(r *gin.Engine, orderHandler *handlers.OrderHandler) *gin.Engine
 	r.GET("/admin/salesreportbyperiod", m.AdminRetreiveToken, orderHandler.SalesReportByPeriod)
 	r.GET("/admin/salesreportbydate", m.AdminRetreiveToken, orderHandler.SalesReportByDate)
 	r.GET("/admin/salesreportbypayment", m.AdminRetreiveToken, orderHandler.SalesReportByPayment)
+	
+	r.GET("/user/printinvioce", m.UserRetreiveCookie, orderHandler.PrintInvoice)
 
 	r.GET("/user/stripe", m.UserRetreiveCookie, orderHandler.ExecutePaymentStripe)
 	r.POST("/webhook", orderHandler.HandleWebhook)

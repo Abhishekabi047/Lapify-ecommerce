@@ -9,12 +9,13 @@ import (
 type Product struct {
 	gorm.Model `json:"-"`
 	ID         int    `gorm:"primarykey"`
-	Name       string `json:"name" validate:"required"`
-	Price      int    `json:"price" validate:"required,numeric,positive"`
-	Size       string `json:"size" validate:"required"`
+	Name       string `json:"name" validate:"required" form:"name"`
+	Price      int    `json:"price" validate:"required,number" form:"price"`
+	OfferPrize int    `json:"offerprice"  `
+	Size       string `json:"size" validate:"required" form:"size"`
 	Removed    bool   `json:"removed"`
-	Category   int    `gorm:"foreignKey:ID;references:ID" validate:"required,numeric"`
-	ImageURL   string `json:"imageurl" validate:"required"`
+	Category   int    `form:"category" gorm:"foreignKey:ID;references:ID" validate:"required,numeric"`
+	ImageURL   string `json:"imageurl" `
 }
 
 type ProductDetails struct {
@@ -46,7 +47,7 @@ type Category struct {
 type Coupon struct {
 	gorm.Model `json:"-"`
 	Id         int       `json:"id"`
-	Code       string    `json:"code"  gorm:"unique" `
+	Code       string    `json:"code"   `
 	Type       string    `json:"type"`
 	Amount     int       `json:"amount"`
 	ValidFrom  time.Time `json:"-"`

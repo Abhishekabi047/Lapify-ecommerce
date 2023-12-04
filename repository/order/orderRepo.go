@@ -2,6 +2,8 @@ package order
 
 import (
 	"errors"
+	"fmt"
+	"project/delivery/models"
 	"project/domain/entity"
 	"time"
 
@@ -144,4 +146,46 @@ func (or *OrderRepository) SavePayment(charge *entity.Charge) (err error) {
 
 func (or *OrderRepository) UpdateInvoice(invoice *entity.Invoice) error {
 	return or.db.Save(&invoice).Error
+}
+
+func (or *OrderRepository) UpdateUserWallet(user *entity.User) error {
+	return or.db.Save(&user).Error
+}
+
+func (or *OrderRepository) DetailedOrderDetails(orderid int) (models.CombinedOrderDetails, error) {
+	var body models.CombinedOrderDetails
+
+	query := `
+		select 
+		o.id as order_id,
+		o.total as amount,
+		o.status as order_status,
+		o.payment_status as payment_status,
+		u.name as name,
+		u.email as email,
+		u.phone as phone,
+		a.address as house_name,
+		a.state as state,
+		a.pin as pin
+	from orders o
+	join users u on o.user_id = u.id
+	join user_addresses a on o.address_id = a.address_id 
+	where o.id = $1
+	`
+	if err := or.db.Raw(query, orderid).Scan(&body).Error; err != nil {
+		err = errors.New("error in getting detailed order through id in repository" + err.Error())
+		return models.CombinedOrderDetails{}, err
+	}
+	fmt.Println("body in repo", body.Amount)
+	return body, nil
+}
+
+func (ol *OrderRepository) GetAllOrderItems(orderid int) ([]entity.OrderItem,error){
+	var orders []entity.OrderItem
+	err:=ol.db.Where("order_id=?",orderid).Find(&orders).Error
+	if err != nil{
+		return nil,errors.New("record npt foundd")
+	}
+	return orders,nil
+	
 }

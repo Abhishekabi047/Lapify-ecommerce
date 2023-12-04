@@ -34,6 +34,7 @@ func UserRouter(r *gin.Engine, userHandler *handlers.UserHandler) *gin.Engine {
 	r.POST("/user/wishlist/:category/:productid", m.UserRetreiveCookie, userHandler.AddToWishList)
 	r.DELETE("/user/wishlist/:product/:id", m.UserRetreiveCookie, userHandler.RemoveFromWishlist)
 	r.GET("/user/wishlist", m.UserRetreiveCookie, userHandler.ViewWishlist)
+	r.GET("/user/coupon", m.UserRetreiveCookie, userHandler.AvailableCoupons)
 	r.POST("/user/applycoupon", m.UserRetreiveCookie, userHandler.ApplyCoupon)
 	r.POST("/logout", userHandler.Logout)
 	return r

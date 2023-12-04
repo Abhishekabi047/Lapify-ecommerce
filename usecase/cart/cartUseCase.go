@@ -42,12 +42,13 @@ func (cu *CartUseCase) ExecuteAddToCart(product string, id int, quantity int, us
 		Category:    prod.Category,
 		Quantity:    quantity,
 		ProductName: prod.Name,
-		Price:       int(prod.Price),
+		Price:       int(prod.OfferPrize),
 	}
 	existingProduct, _ := cu.cartRepo.GetByName(prod.Name, cartid)
-	// if err != nil {
-	// 	fmt.Println(err)
-	// }
+
+	if cartitem.Price == 0 {
+		cartitem.Price = int(prod.Price)
+	}
 	if existingProduct == nil {
 		err := cu.cartRepo.CreateCartItem(cartitem)
 		if err != nil {

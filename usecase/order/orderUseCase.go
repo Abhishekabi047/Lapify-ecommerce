@@ -3,15 +3,17 @@ package order
 import (
 	"errors"
 	"fmt"
+	"project/config"
 	"project/domain/entity"
 	"project/domain/utils"
 	cartrepository "project/repository/cart"
 	repository "project/repository/order"
 	productrepository "project/repository/product"
 	userrepository "project/repository/user"
+	"strconv"
 	"time"
 
-	"github.com/gin-gonic/gin"
+	"github.com/jung-kurt/gofpdf"
 	razorpay "github.com/razorpay/razorpay-go"
 )
 
@@ -20,10 +22,11 @@ type OrderUseCase struct {
 	cartRepo    *cartrepository.CartRepository
 	userRepo    *userrepository.UserRepository
 	productRepo *productrepository.ProductRepository
+	razopay     *config.Razopay
 }
 
-func NewOrder(orderRepo *repository.OrderRepository, cartRepo *cartrepository.CartRepository, userRepo *userrepository.UserRepository, productRepo *productrepository.ProductRepository) *OrderUseCase {
-	return &OrderUseCase{orderRepo: orderRepo, cartRepo: cartRepo, userRepo: userRepo, productRepo: productRepo}
+func NewOrder(orderRepo *repository.OrderRepository, cartRepo *cartrepository.CartRepository, userRepo *userrepository.UserRepository, productRepo *productrepository.ProductRepository, razopay *config.Razopay) *OrderUseCase {
+	return &OrderUseCase{orderRepo: orderRepo, cartRepo: cartRepo, userRepo: userRepo, productRepo: productRepo, razopay: razopay}
 }
 
 func (or *OrderUseCase) ExecuteOrderCod(userid int, address int) (*entity.Invoice, error) {
@@ -119,12 +122,20 @@ func (co *OrderUseCase) ExecuteCancelOrder(orderid int) error {
 	if err != nil {
 		return errors.New("erroro getting orderid")
 	}
-	// userid,err:=co.userRepo.GetById(result.UserId)
-	// if err != nil{
-	// 	return errors.New("error getting user")
-	// }
+	userid, err := co.userRepo.GetById(result.UserId)
+	if err != nil {
+		return errors.New("error getting user")
+	}
 	if result.Status != "pending" && result.Status != "confirmed" {
 		return errors.New("order cancel time exceeded")
+	}
+	if result.PaymentStatus == "succesfull" {
+		result.PaymentStatus = "refund"
+		userid.Wallet = userid.Wallet + int(result.Total)
+		err := co.orderRepo.UpdateUserWallet(userid)
+		if err != nil {
+			return err
+		}
 	}
 	result.Status = "cancelled"
 	err1 := co.orderRepo.Update(result)
@@ -179,8 +190,21 @@ func (co *OrderUseCase) ExecuteAdminCancelOrder(orderid int) error {
 	if err != nil {
 		return err
 	}
-	if result.Status != "pending" {
-		return errors.New("admin already confirmed order")
+
+	userid, err := co.userRepo.GetById(result.UserId)
+	if err != nil {
+		return errors.New("error getting user")
+	}
+	if result.Status != "pending" && result.Status != "confirmed" {
+		return errors.New("order cancel time exceeded")
+	}
+	if result.PaymentStatus == "succesfull" {
+		result.PaymentStatus = "refund"
+		userid.Wallet = userid.Wallet + int(result.Total)
+		err := co.orderRepo.UpdateUserWallet(userid)
+		if err != nil {
+			return err
+		}
 	}
 	result.Status = "cancelled"
 	err1 := co.orderRepo.Update(result)
@@ -190,7 +214,7 @@ func (co *OrderUseCase) ExecuteAdminCancelOrder(orderid int) error {
 	return nil
 }
 
-func (rp *OrderUseCase) ExecuteRazorPay(userId, address int, c *gin.Context) (string, int, error) {
+func (rp *OrderUseCase) ExecuteRazorPay(userId, address int) (string, int, error) {
 	var orderItems []entity.OrderItem
 	cart, err := rp.cartRepo.GetByUserid(userId)
 	if err != nil {
@@ -204,7 +228,9 @@ func (rp *OrderUseCase) ExecuteRazorPay(userId, address int, c *gin.Context) (st
 	if err2 != nil {
 		return "", 0, errors.New("address not found")
 	}
-	client := razorpay.NewClient("rzp_test_leWrFNIomWqk5W", "R59k58EhgS48BaauF22urj5A")
+	// client := razorpay.NewClient("rzp_test_leWrFNIomWqk5W", "R59k58EhgS48BaauF22urj5A")
+	client := razorpay.NewClient(rp.razopay.RazopayKey,rp.razopay.RazopaySecret)
+	
 
 	data := map[string]interface{}{
 		"amount":   int(cart.TotalPrize),
@@ -555,4 +581,63 @@ func (co *OrderUseCase) ExecuteOrderid(OrderId int) (*entity.Order, error) {
 	}
 	return result, nil
 
+}
+
+func (co *OrderUseCase) ExecutPrintInvoice(orderId, userid int) (*gofpdf.Fpdf, error) {
+	// order, err := co.orderRepo.DetailedOrderDetails(orderId)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	orde, err := co.orderRepo.GetOrderById(orderId)
+	if err != nil {
+		return nil, err
+	}
+
+	usr, err := co.userRepo.GetById(userid)
+	if err != nil {
+		return nil, err
+	}
+
+	usadres, err := co.userRepo.GetAddressById(orde.Addressid)
+	if err != nil {
+		return nil, err
+	}
+
+	items, err := co.orderRepo.GetAllOrderItems(orderId)
+	if err != nil {
+		return nil, err
+	}
+
+	pdf := gofpdf.New("P", "mm", "A4", "")
+	pdf.AddPage()
+
+	pdf.SetFont("Arial", "B", 16)
+	pdf.Cell(40, 10, "Invoice")
+	pdf.Ln(10)
+
+	pdf.Cell(0, 10, "Customer Name: "+usr.Name)
+	pdf.Ln(10)
+	pdf.Cell(0, 10, "House Name: "+usadres.Address)
+	pdf.Ln(10)
+	pdf.Cell(0, 10, "State: "+usadres.State)
+	pdf.Ln(10)
+	pdf.Cell(0, 10, "Country: "+usadres.Country)
+	pdf.Ln(10)
+
+	for _, item := range items {
+		pro, err := co.productRepo.GetProductById(item.ProductId)
+		if err != nil {
+			return nil, err
+		}
+		pdf.Cell(0, 10, "Item: "+pro.Name)
+		pdf.Ln(10)
+		pdf.Cell(0, 10, "Price: $"+strconv.Itoa(item.Prize))
+		pdf.Ln(10)
+		pdf.Cell(0, 10, "Quantity: "+strconv.Itoa(item.Quantity))
+		pdf.Ln(10)
+	}
+	pdf.Ln(10)
+	pdf.Cell(0, 10, "Total Amount: $"+strconv.FormatFloat(float64(orde.Total), 'f', 2, 64))
+
+	return pdf, nil
 }

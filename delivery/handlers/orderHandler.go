@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"project/config"
 	"project/domain/entity"
 	usecase "project/usecase/order"
 	"strconv"
@@ -19,10 +20,11 @@ import (
 
 type OrderHandler struct {
 	OrderUseCase *usecase.OrderUseCase
+	Razorpay config.Razopay
 }
 
-func NewOrderHandler(OrderUseCase *usecase.OrderUseCase) *OrderHandler {
-	return &OrderHandler{OrderUseCase}
+func NewOrderHandler(OrderUseCase *usecase.OrderUseCase,Razorpay config.Razopay) *OrderHandler {
+	return &OrderHandler{OrderUseCase,Razorpay}
 }
 
 func (oh *OrderHandler) PlaceOrder(c *gin.Context) {
@@ -44,7 +46,7 @@ func (oh *OrderHandler) PlaceOrder(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{"invoice": invoice})
 		}
 	} else if PaymentMethod == "razorpay" {
-		razorId, orderId, err1 := oh.OrderUseCase.ExecuteRazorPay(userid, addressId, c)
+		razorId, orderId, err1 := oh.OrderUseCase.ExecuteRazorPay(userid, addressId)
 		if err1 != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err1.Error()})
 		}
@@ -80,7 +82,12 @@ func (co *OrderHandler) CancelOrder(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err1.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message ": "order cancelled"})
+	updatedorder, err2 := co.OrderUseCase.UpdatedUser(orderid)
+	if err2 != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err2.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"order cancceled ": updatedorder})
 }
 
 func (co *OrderHandler) OrderHistory(c *gin.Context) {
@@ -395,4 +402,41 @@ func (or *OrderHandler) OrderStatus(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"order": order})
 
+}
+
+func (or *OrderHandler) PrintInvoice(c *gin.Context){
+	userID,_:=c.Get("userId")
+	userid:=userID.(int)
+	strorderId:=c.PostForm("orderid")
+	orderid,err:=strconv.Atoi(strorderId)
+	if err != nil{
+		c.JSON(http.StatusBadRequest,gin.H{"error":err.Error()})
+		return
+	}
+	pdf,err:=or.OrderUseCase.ExecutPrintInvoice(orderid,userid)
+	if err != nil{
+		c.JSON(http.StatusBadRequest,gin.H{"error":err.Error()})
+		return
+	}
+	c.Header("Content-Disposition","attachment;filename=Invoice.pdf")
+	c.Header("Content_Type","application/pdf")
+
+
+	err = pdf.Output(c.Writer)
+	if err != nil{
+		c.JSON(http.StatusBadRequest,gin.H{"errror":err.Error()})
+		return
+	}
+
+	pdfFilePath:="salesreport/invoice.pdf"
+
+	err = pdf.OutputFileAndClose(pdfFilePath)
+	if err != nil{
+		c.JSON(http.StatusBadRequest,gin.H{"error":err.Error()})
+		return
+	}
+	c.File(pdfFilePath)
+	
+
+	
 }

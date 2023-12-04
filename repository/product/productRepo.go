@@ -276,3 +276,13 @@ func (pr *ProductRepository) GetAllOffers() ([]entity.Offer, error) {
 	return offer, nil
 
 }
+
+func (ar *ProductRepository) GetProductsByCategoryoffer(id int) ([]entity.Product, error) {
+	var product []entity.Product
+
+	err := ar.db.Where("category=? AND removed =?", id, false).Find(&product).Error
+	if err != nil {
+		return nil, errors.New("record not found")
+	}
+	return product, nil
+}

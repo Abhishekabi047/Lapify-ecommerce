@@ -454,3 +454,12 @@ func (sc *UserHandler) ApplyCoupon(c *gin.Context){
 	}
 	c.JSON(http.StatusOK,gin.H{"offer prize":totaloffer,"offer":"applied succesfully"})
 }
+
+func (sc *UserHandler) AvailableCoupons(c *gin.Context){
+	couponlist,err:=sc.ProductUseCase.ExecuteAvailableCoupons()
+	if err != nil{
+		c.JSON(http.StatusBadRequest,gin.H{"error":err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK,gin.H{"Available Coupons":couponlist})
+}

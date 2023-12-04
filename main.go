@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"project/config"
 	"project/delivery/handlers"
 	"project/delivery/routes"
 	adminrepository "project/repository/admin"
@@ -22,7 +23,11 @@ import (
 )
 
 func main() {
-	db, err := infrastructure.ConnectDb()
+	config,err:=config.LoadConfig()
+	if err != nil{
+		log.Fatal("error loading files using viper")
+	}
+	db, err := infrastructure.ConnectDb(config.DB)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -32,15 +37,15 @@ func main() {
 	cartRepo := cartrepository.NewCartRepository(db)
 	orderRepo := orderrepository.NewOrderRepository(db)
 
-	userusecase := usecase.NewUser(userRepo)
+	userusecase := usecase.NewUser(userRepo,&config.Otp)
 	adminUseCase := adminUseCase.NewAdmin(adminRepo)
-	productUsecase := productusecase.NewProduct(productRepo)
+	productUsecase := productusecase.NewProduct(productRepo,&config.S3aws)
 	cartUsecase := cartusecase.NewCart(cartRepo, productRepo)
-	orderUsecase := orderusecase.NewOrder(orderRepo, cartRepo, userRepo, productRepo)
+	orderUsecase := orderusecase.NewOrder(orderRepo, cartRepo, userRepo, productRepo,&config.Razopay)
 
 	userHandler := handlers.NewUserhandler(userusecase, productUsecase, cartUsecase)
 	adminHandler := handlers.NewAdminHandler(adminUseCase, productUsecase)
-	orderHandler := handlers.NewOrderHandler(orderUsecase)
+	orderHandler := handlers.NewOrderHandler(orderUsecase,config.Razopay)
 
 	router := gin.Default()
 

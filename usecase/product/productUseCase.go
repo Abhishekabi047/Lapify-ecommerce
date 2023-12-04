@@ -3,7 +3,10 @@ package usecase
 import (
 	"errors"
 	"fmt"
+	"mime/multipart"
+	"project/config"
 	"project/domain/entity"
+	"project/domain/utils"
 	repository "project/repository/product"
 	"strconv"
 
@@ -13,10 +16,11 @@ import (
 
 type ProductUseCase struct {
 	productRepo *repository.ProductRepository
+	s3          config.S3Bucket
 }
 
-func NewProduct(productRepo *repository.ProductRepository) *ProductUseCase {
-	return &ProductUseCase{productRepo: productRepo}
+func NewProduct(productRepo *repository.ProductRepository, s3 *config.S3Bucket) *ProductUseCase {
+	return &ProductUseCase{productRepo: productRepo, s3: *s3}
 }
 
 func (pu *ProductUseCase) ExecuteProductList(page, limit int) ([]entity.Product, error) {
@@ -41,7 +45,7 @@ func (pu *ProductUseCase) ExecuteProductDetails(id int) (*entity.Product, *entit
 	return product, productdetails, nil
 }
 
-func (pu *ProductUseCase) ExecuteCreateProduct(product entity.Product) (int, error) {
+func (pu *ProductUseCase) ExecuteCreateProduct(product entity.Product, image *multipart.FileHeader) (int, error) {
 	validate := validator.New()
 	validate.RegisterValidation("positive", PositiveNumeric)
 	if err := validate.Struct(product); err != nil {
@@ -73,8 +77,19 @@ func (pu *ProductUseCase) ExecuteCreateProduct(product entity.Product) (int, err
 		Price:    product.Price,
 		Category: product.Category,
 		Size:     product.Size,
-		ImageURL: product.ImageURL,
 	}
+
+	sess := utils.CreateSession(pu.s3)
+	// fmt.Println("sess", sess)
+
+	ImageURL, err := utils.UploadImageToS3(image, sess)
+	if err != nil {
+		fmt.Println("err:",err)
+		return 0, err
+	}
+	fmt.Println("err:",err)
+	newprod.ImageURL = ImageURL
+	fmt.Println("image,", ImageURL)
 	productid, err := pu.productRepo.CreateProduct(newprod)
 	if err != nil {
 		return 0, err
@@ -408,4 +423,46 @@ func (pu *ProductUseCase) ExecuteGetOffers() (*[]entity.Offer, error) {
 		}
 	}
 	return &avialableoffers, nil
+}
+
+func (pu *ProductUseCase) ExecuteAddProductOffer(productid, offer int) (*entity.Product, error) {
+
+	product, err := pu.productRepo.GetProductById(productid)
+	if err != nil {
+		return nil, err
+	}
+	if offer < 0 || offer > 100 {
+		return nil, errors.New("Invalid offer percentage")
+	}
+
+	amount := float64(offer) / 100.0 * float64(product.Price)
+	product.OfferPrize = product.Price - int(amount)
+	err1 := pu.productRepo.UpdateProduct(product)
+	if err1 != nil {
+		return nil, err
+	}
+	return product, nil
+}
+
+func (pu *ProductUseCase) ExecuteCategoryOffer(catid, offer int) ([]entity.Product, error) {
+
+	productlist, err := pu.productRepo.GetProductsByCategoryoffer(catid)
+	if err != nil {
+		return nil, err
+	}
+	if offer < 0 || offer > 100 {
+		return nil, errors.New("Invalid offer percentage")
+	}
+	for i := range productlist {
+		product := &(productlist)[i]
+
+		amount := float64(offer) / 100.0 * float64(product.Price)
+		product.OfferPrize = product.Price - int(amount)
+		err := pu.productRepo.UpdateProduct(product)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return productlist, nil
+
 }

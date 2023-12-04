@@ -3,6 +3,7 @@ package utils
 import (
 	"errors"
 	"fmt"
+	"project/config"
 
 	// "log"
 	// "os"
@@ -34,11 +35,13 @@ var (
 
 // }
 
-func SendOtp(phone string) (string, error) {
+func SendOtp(phone string, cfg config.OTP) (string, error) {
 
-	TWILIO_ACCOUNT_SID = "AC1cd1b8f006dcfa198971917f6c6c0ca6"
-	TWILIO_AUTH_TOKEN = "aa80d80bfd7c92d7cae3ee273db9c97e"
-	VERIFY_SERVICE_SID = "VAe34d88e9c26c376010bba3daf29304cb"
+	TWILIO_ACCOUNT_SID = cfg.AccountSid
+	TWILIO_AUTH_TOKEN = cfg.AuthToken
+	VERIFY_SERVICE_SID = cfg.ServiceSid
+	
+
 	client = twilio.NewRestClientWithParams(twilio.ClientParams{
 		Username: TWILIO_ACCOUNT_SID,
 		Password: TWILIO_AUTH_TOKEN,
@@ -58,11 +61,11 @@ func SendOtp(phone string) (string, error) {
 	}
 }
 
-func CheckOtp(phone, code string) error {
+func CheckOtp(phone, code string, cfg config.OTP) error {
 
-	TWILIO_ACCOUNT_SID = "AC1cd1b8f006dcfa198971917f6c6c0ca6"
-	TWILIO_AUTH_TOKEN = "aa80d80bfd7c92d7cae3ee273db9c97e"
-	VERIFY_SERVICE_SID = "VAe34d88e9c26c376010bba3daf29304cb"
+	TWILIO_ACCOUNT_SID = cfg.AccountSid
+	TWILIO_AUTH_TOKEN = cfg.AuthToken
+	VERIFY_SERVICE_SID = cfg.ServiceSid
 	client = twilio.NewRestClientWithParams(twilio.ClientParams{
 		Username: TWILIO_ACCOUNT_SID,
 		Password: TWILIO_AUTH_TOKEN,

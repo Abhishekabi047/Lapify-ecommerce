@@ -10,7 +10,9 @@ type User struct {
 	Phone      string `json:"phone" validate:"required"`
 	Password   string `json:"password" validate:"required,min=8"`
 	IsBlocked  bool   `gorm:"not null;default:true" json:"-"`
+	Wallet     int    `json:"wallet"`
 	Permission bool   `gorm:"not null;default:true" json:"-"`
+	ReferalCode string `json:"referalcode"`
 }
 
 type UserAddress struct {

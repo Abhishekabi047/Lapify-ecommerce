@@ -2,6 +2,7 @@ package infrastructure
 
 import (
 	"fmt"
+	"project/config"
 	"project/delivery/models"
 	"project/domain/entity"
 
@@ -13,8 +14,9 @@ var DB *gorm.DB
 var dsn string
 var Dbco = "host=localhost user=postgres dbname=ecom password=2589 port=5432 sslmode=disable"
 
-func ConnectDb() (*gorm.DB, error) {
-	db, err := gorm.Open(postgres.Open(Dbco), &gorm.Config{})
+func ConnectDb(config config.DataBase) (*gorm.DB, error) {
+	psqlInfo := fmt.Sprintf("host=%s user=%s dbname=%s port=%s password=%s", config.DBHost, config.DBUser, config.DBName, config.DBPort, config.DBPassword)
+	db, err := gorm.Open(postgres.Open(psqlInfo), &gorm.Config{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to db : %w", err)
 	}

@@ -163,7 +163,6 @@ func (ur *UserRepository) UpdateAddress(usaaddress *entity.UserAddress) error {
 	return nil
 }
 
-
 func (cn *UserRepository) DeleteAddress(Id int) error {
 
 	err := cn.db.Delete(&entity.UserAddress{}, Id).Error
@@ -172,4 +171,17 @@ func (cn *UserRepository) DeleteAddress(Id int) error {
 	}
 	return nil
 
+}
+
+func (cn *UserRepository) GetByReferalCode(code string) (*entity.User, error) {
+	var user entity.User
+
+	result := cn.db.Where("referal_code=?", code).First(&user)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, result.Error
+		}
+		return nil, result.Error
+	}
+	return &user, nil
 }

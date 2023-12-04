@@ -21,6 +21,7 @@ func AdminRouter(r *gin.Engine, adminHandler *handlers.AdminHandler) *gin.Engine
 
 	r.GET("/admin/products", m.AdminRetreiveToken, adminHandler.AdminProductlist)
 	r.POST("/admin/product", m.AdminRetreiveToken, adminHandler.CreateProduct)
+
 	r.PATCH("/admin/product/:id", m.AdminRetreiveToken, adminHandler.EditProduct)
 	r.DELETE("admin/product/:id", m.AdminRetreiveToken, adminHandler.DeleteProduct)
 
@@ -30,5 +31,8 @@ func AdminRouter(r *gin.Engine, adminHandler *handlers.AdminHandler) *gin.Engine
 
 	r.POST("/admin/offer", m.AdminRetreiveToken, adminHandler.AddOffer)
 	r.GET("/admin/offer", m.AdminRetreiveToken, adminHandler.AllOffer)
+
+	r.POST("/admin/product/offer", m.AdminRetreiveToken, adminHandler.AddProductOffer)
+	r.POST("/admin/category/offer", m.AdminRetreiveToken, adminHandler.AddCategoryOffer)
 	return r
 }
