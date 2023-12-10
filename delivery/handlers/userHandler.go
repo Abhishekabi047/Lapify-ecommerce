@@ -52,6 +52,18 @@ func (uh *UserHandler) SignupOtpValidation(c *gin.Context) {
 	}
 }
 
+// LoginWithPassword godoc
+// @Summary Log in a user using phone and password
+// @Description Authenticate a user using phone and password, and generate an authentication token
+// @ID loginWithPassword
+// @Tags User
+// @Accept multipart/form-data
+// @Produce json
+// @Param phone formData string true "Phone number of the user"
+// @Param password formData string true "User password"
+// @Success 200 {string} string "message: User logged in successfully and cookie stored"
+// @Failure 400 {string} string "error: Invalid phone number or password"
+// @Router /user/login [post]
 func (uh *UserHandler) LoginWithPassword(c *gin.Context) {
 
 	phone := c.PostForm("phone")
@@ -69,6 +81,19 @@ func (uh *UserHandler) LoginWithPassword(c *gin.Context) {
 
 }
 
+// Products godoc
+// @Summary Get a list of products
+// @Description Retrieve a list of products with pagination
+// @ID getProducts
+// @Tags User
+// @Produce json
+// @Param page query string false "Page number for pagination (default: 1)"
+// @Param limit query string false "Limit the number of products per page (default: 10)"
+// @Success 200 {string} string "userId: <userID>, products: []entity.Product"
+// @Failure 400 {string} string "error: userId not found in the context"
+// @Failure 400 {string} string "error: Failed to convert string to integer (page or limit)"
+// @Failure 400 {string} string "error: Product not found"
+// @Router /user/products [get]
 func (po *UserHandler) Products(c *gin.Context) {
 
 	userID, exists := c.Get("userId")
@@ -109,6 +134,17 @@ func (po *UserHandler) Products(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"userId": userID, "products": prodlist})
 }
 
+// ProductDetails godoc
+// @Summary Get details of a specific product
+// @Description Retrieve details of a product based on the provided product ID
+// @ID getProductDetails
+// @Tags User
+// @Produce json
+// @Param productid path string true "Product ID to get details for"
+// @Success 200 {string} string "products: entity.Product, product details: entity.ProductDetails"
+// @Failure 400 {string} string "error: Failed to convert string to integer (product ID)"
+// @Failure 400 {string} string "error: Product not found"
+// @Router /user/products/details/{productid} [get]
 func (pd *UserHandler) ProductDetails(c *gin.Context) {
 	ids := c.Param("productid")
 	id, err := strconv.Atoi(ids)
@@ -124,6 +160,21 @@ func (pd *UserHandler) ProductDetails(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"products": product, "product details": productdetails})
 }
 
+// AddToCart godoc
+// @Summary Add a product to the user's cart
+// @Description Add a product to the user's cart based on the provided product ID and quantity
+// @ID addToCart
+// @Tags User
+// @Accept multipart/form-data
+// @Produce json
+// @Param productid formData string true "Product ID to add to the cart"
+// @Param quantity formData string true "Quantity of the product to add to the cart"
+// @Success 200 {string} string "message: Product added to cart successfully, addedproduct: []entity.CartItem"
+// @Failure 400 {string} string "error: userId not found in the context"
+// @Failure 400 {string} string "error: Failed to convert string to integer (product ID or quantity)"
+// @Failure 400 {string} string "error: Failed to add product to cart"
+// @Failure 500 {string} string "error: Failed to retrieve cart items"
+// @Router /user/cart [post]
 func (ac *UserHandler) AddToCart(c *gin.Context) {
 	userID, exists := c.Get("userId")
 	if !exists || userID == nil {
@@ -133,7 +184,7 @@ func (ac *UserHandler) AddToCart(c *gin.Context) {
 	}
 	userid := userID.(int)
 	fmt.Println("userId", userid)
-	product := c.PostForm("category")
+
 	strid := c.PostForm("productid")
 	strquantity := c.PostForm("quantity")
 	id, err := strconv.Atoi(strid)
@@ -147,7 +198,7 @@ func (ac *UserHandler) AddToCart(c *gin.Context) {
 		return
 	}
 
-	err = ac.CartUSeCase.ExecuteAddToCart(product, id, quantity, userid)
+	err = ac.CartUSeCase.ExecuteAddToCart(id, quantity, userid)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -160,17 +211,29 @@ func (ac *UserHandler) AddToCart(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "product addedto car succesfully", "addedproduct": addedProduct})
 }
 
+// RemoveFromCart godoc
+// @Summary Remove a product from the user's cart
+// @Description Remove a product from the user's cart based on the provided cart item ID
+// @ID removeFromCart
+// @Tags User
+// @Produce json
+// @Param id path string true "Cart item ID to remove from the cart"
+// @Success 200 {string} string "message: Product removed from cart"
+// @Failure 400 {string} string "error: userId not found in the context"
+// @Failure 400 {string} string "error: Failed to convert string to integer (cart item ID)"
+// @Failure 400 {string} string "error: Failed to remove product from cart"
+// @Router /user/cart/{id} [delete]
 func (rc *UserHandler) RemoveFromCart(c *gin.Context) {
 	userID, _ := c.Get("userId")
 	userid := userID.(int)
-	id := c.PostForm("id")
-	product := c.PostForm("product")
+	id := c.Param("id")
+
 	Id, err := strconv.Atoi(id)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "str convertion failed"})
 		return
 	}
-	err1 := rc.CartUSeCase.ExecuteRemoveCartItem(userid, Id, product)
+	err1 := rc.CartUSeCase.ExecuteRemoveCartItem(userid, Id)
 	if err1 != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err1.Error()})
 		return
@@ -178,6 +241,16 @@ func (rc *UserHandler) RemoveFromCart(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "product removed from cart"})
 }
 
+// Cart godoc
+// @Summary Get the user's cart
+// @Description Retrieve the user's cart based on the provided user ID
+// @ID getCart
+// @Tags User
+// @Produce json
+// @Success 200 {string} string "usercart: entity.Cart"
+// @Failure 400 {string} string "error: userId not found in the context"
+// @Failure 400 {string} string "error: Failed to retrieve user's cart"
+// @Router /user/cart [get]
 func (cu *UserHandler) Cart(c *gin.Context) {
 	userID, _ := c.Get("userId")
 	userid := userID.(int)
@@ -244,6 +317,13 @@ func (cu *UserHandler) ViewWishlist(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": wishlist})
 }
 
+// Logout godoc
+// @Summary Logs out the user
+// @Description Deletes the authentication token cookie to log the user out
+// @Produce json
+// @Success 200 {string} string "user logged out successfully"
+// @Failure 400 {string} string "cookie delete failed"
+// @Router /logout [post]
 func (cu *UserHandler) Logout(c *gin.Context) {
 	err := middleware.DeleteToken(c)
 	if err != nil {
@@ -254,6 +334,15 @@ func (cu *UserHandler) Logout(c *gin.Context) {
 	}
 }
 
+// AddAddress godoc
+// @Summary Adds a new address for the user
+// @Description Adds a new address associated with the authenticated user
+// @Produce json
+// @Tags User
+// @Param address body entity.UserAddress true "Address information to be added"
+// @Success 200 {string} string "address added successfully"
+// @Failure 400 {string} string "Bad Request"
+// @Router /user/address [post]
 func (cu *UserHandler) AddAddress(c *gin.Context) {
 	userID, _ := c.Get("userId")
 	userid := userID.(int)
@@ -272,6 +361,14 @@ func (cu *UserHandler) AddAddress(c *gin.Context) {
 	}
 }
 
+// ShowUserDetails godoc
+// @Summary Retrieve details for the authenticated user
+// @Description Retrieve user details and associated address based on the provided user ID
+// @Produce json
+// @Tags User
+// @Success 200 {string} string "userdetails: entity.UserDetails, address: entity.UserAddress"
+// @Failure 400 {string} string "error: Bad Request"
+// @Router /user/details [get]
 func (cy *UserHandler) ShowUserDetails(c *gin.Context) {
 	userID, _ := c.Get("userId")
 	userid := userID.(int)
@@ -283,6 +380,16 @@ func (cy *UserHandler) ShowUserDetails(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"userdetails": userdetails, "address": address})
 }
 
+// EditProfile godoc
+// @Summary Edit the profile for the authenticated user
+// @Description Edit user profile based on the provided user ID and input data
+// @Produce json
+// @Tags User
+// @Param userinput body models.EditUser true "User information to be edited"
+// @Success 200 {string} string "message: user edited successfully, updateduser: entity.UserDetails"
+// @Failure 400 {string} string "error: Bad Request"
+// @Failure 500 {string} string "error: Failed to fetch updated user details"
+// @Router /user/profile [patch]
 func (eu *UserHandler) EditProfile(c *gin.Context) {
 	userID, _ := c.Get("userId")
 	userid := userID.(int)
@@ -330,6 +437,14 @@ func (cp *UserHandler) OtpValidationPassword(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "password changed succesfully"})
 }
 
+//	 CartItems godoc
+//		@Summary Get the items in the user's cart
+//		@Description Retrieve the items in the user's cart based on the provided user ID
+//		@Produce json
+//		@Param userId path int true "User ID"
+//		@Success 200 {string} string "cartlist: []entity.CartItem"
+//		@Failure 400 {string} string "error: Bad Request"
+//		@Router /user/cartlist [get]
 func (cl *UserHandler) CartItems(c *gin.Context) {
 
 	userID, _ := c.Get("userId")
@@ -342,6 +457,17 @@ func (cl *UserHandler) CartItems(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"cartlist": cartitems})
 }
 
+// EditAddress godoc
+//
+//		@Summary Edit the user's address
+//		@Description Edit the user's address of a specific type (e.g., home, work)
+//		@Produce json
+//	 @Tags User
+//		@Param type path string true "Address type (e.g., home, work)"
+//		@Param useraddress body entity.UserAddress true "Updated address information"
+//		@Success 200 {string} string "success: address edited successfully"
+//		@Failure 400 {string} string "error: Bad Request"
+//		@Router /user/address/{type} [patch]
 func (ea *UserHandler) EditAddress(c *gin.Context) {
 	var useraddress entity.UserAddress
 	if err := c.ShouldBindJSON(&useraddress); err != nil {
@@ -359,6 +485,14 @@ func (ea *UserHandler) EditAddress(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": "address edited succesfully"})
 }
 
+// @Summary Delete user address
+// @Description Deletes a specific type of address for the authenticated user.
+// @ID delete-user-address
+// @Produce json
+// @Param type path string true "Type of address to be deleted (e.g., 'home', 'work')"
+// @Success 200 {object} string "success": "address Deleted successfully" "Successful response"
+// @Failure 400 {object} string "error": "Error message" "Error response"
+// @Router /user/address/{type} [delete]
 func (da *UserHandler) DeleteAddress(c *gin.Context) {
 	userID, _ := c.Get("userId")
 	userid := userID.(int)
@@ -371,6 +505,17 @@ func (da *UserHandler) DeleteAddress(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": "address Deleted succesfully"})
 }
 
+// SearchProduct godoc
+// @Summary Search products
+// @Description Searches for products based on the provided search query.
+// @ID search-products
+// @Produce json
+// @Param page query int false "Page number for pagination (default is 1)"
+// @Param limit query int false "Number of items per page (default is 5)"
+// @Param search query string true "Search query string"
+// @Success 200 {string} entity.product
+// @Failure 400 {object} string "error": "Error message" "Error response"
+// @Router /user/products/search [get]
 func (or *UserHandler) SearchProduct(c *gin.Context) {
 	pagestr := c.DefaultQuery("page", "1")
 	limistr := c.DefaultQuery("limit", "5")
@@ -404,6 +549,18 @@ func (or *UserHandler) SearchProduct(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"products": responselist})
 }
 
+// SortByCategory godoc
+// @Summary Sort products by category
+// @Description Retrieves a list of products sorted by category based on the provided category ID.
+// @ID sort-products-by-category
+// @Produce json
+// @Param page query int false "Page number for pagination (default is 1)"
+// @Param limit query int false "Number of items per page (default is 5)"
+// @Param id query int true "Category ID for sorting products"
+// @Success 200 {string} string "Product list retrieved successfully"
+// @Failure 400 {string} string "Bad request"
+// @Failure 502 {string} string "Bad gateway"
+// @Router /user/products/sort [get]
 func (sc *UserHandler) SortByCategory(c *gin.Context) {
 	pagestr := c.DefaultQuery("page", "1")
 	limitstr := c.DefaultQuery("limit", "5")
@@ -427,39 +584,71 @@ func (sc *UserHandler) SortByCategory(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"Products": productlist})
 }
 
+// SortByFilter godoc
+// @Summary Sort products by filter
+// @Description Retrieves a list of products based on the provided filter criteria.
+// @ID sort-products-by-filter
+// @Produce json
+// @Param minprize query int false "Minimum prize for product filtering"
+// @Param maxprize query int false "Maximum prize for product filtering"
+// @Param category query int false "Category ID for product filtering"
+// @Param size query string false "Product size for filtering"
+// @Success 200 {string} string "Product list retrieved successfully"
+// @Failure 400 {string} string "Bad request"
+// @Router /user/products/filter [get]
 func (sc *UserHandler) SortByFilter(c *gin.Context) {
-	strminPrize:=c.Query("minprize")
-	strmaxPrize:=c.Query("maxprize")
-	strcategory:=c.Query("category")
-	size:=c.Query("size")
-	minPrize,_:=strconv.Atoi(strminPrize)
-	maxPrize,_:=strconv.Atoi(strmaxPrize)
-	category,_:=strconv.Atoi(strcategory)
-	productlist,err1:=sc.ProductUseCase.ExecuteProductFilter(size,minPrize,maxPrize,category)
-	if err1 != nil{
-		c.JSON(http.StatusBadRequest,gin.H{"error":err1.Error()})
+	strminPrize := c.Query("minprize")
+	strmaxPrize := c.Query("maxprize")
+	strcategory := c.Query("category")
+	size := c.Query("size")
+	minPrize, _ := strconv.Atoi(strminPrize)
+	maxPrize, _ := strconv.Atoi(strmaxPrize)
+	category, _ := strconv.Atoi(strcategory)
+	productlist, err1 := sc.ProductUseCase.ExecuteProductFilter(size, minPrize, maxPrize, category)
+	if err1 != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err1.Error()})
 		return
 	}
-	c.JSON(http.StatusOK,gin.H{"products":productlist})
-}
-func (sc *UserHandler) ApplyCoupon(c *gin.Context){
-	userID,_:=c.Get("userId")
-	userid:=userID.(int)
-	code:=c.PostForm("code")
-
-	totaloffer,err:=sc.CartUSeCase.ExecuteApplyCoupon(userid,code)
-	if err != nil{
-		c.JSON(http.StatusBadRequest,gin.H{"error":err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK,gin.H{"offer prize":totaloffer,"offer":"applied succesfully"})
+	c.JSON(http.StatusOK, gin.H{"products": productlist})
 }
 
-func (sc *UserHandler) AvailableCoupons(c *gin.Context){
-	couponlist,err:=sc.ProductUseCase.ExecuteAvailableCoupons()
-	if err != nil{
-		c.JSON(http.StatusBadRequest,gin.H{"error":err.Error()})
+// ApplyCoupon godoc
+// @Summary Apply coupon to user's cart
+// @Description Applies a coupon to the authenticated user's cart based on the provided coupon code.
+// @ID apply-coupon
+// @Accept multipart/form-data
+// @Produce json
+// @Param code formData string true "Coupon code to be applied"
+// @Success 200 {string} string "Total offer prize and Coupon applied successfully"
+// @Failure 400 {string} string "Bad request"
+// @Router /user/cart/coupon [post]
+func (sc *UserHandler) ApplyCoupon(c *gin.Context) {
+	userID, _ := c.Get("userId")
+	userid := userID.(int)
+	code := c.PostForm("code")
+
+	totaloffer, err := sc.CartUSeCase.ExecuteApplyCoupon(userid, code)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK,gin.H{"Available Coupons":couponlist})
+	c.JSON(http.StatusOK, gin.H{"offer prize": totaloffer, "offer": "applied succesfully"})
+}
+
+
+// AvailableCoupons godoc
+// @Summary Retrieve available coupons
+// @Description Retrieves a list of available coupons.
+// @ID get-available-coupons
+// @Produce json
+// @Success 200 {string} string "List of available coupons"
+// @Failure 400 {string} string "Bad request"
+// @Router /user/coupons [get]
+func (sc *UserHandler) AvailableCoupons(c *gin.Context) {
+	couponlist, err := sc.ProductUseCase.ExecuteAvailableCoupons()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"Available Coupons": couponlist})
 }

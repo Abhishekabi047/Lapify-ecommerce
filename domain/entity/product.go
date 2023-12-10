@@ -21,8 +21,8 @@ type Product struct {
 type ProductDetails struct {
 	gorm.Model    `json:"-"`
 	ProductID     int    `json:"productid"`
-	Description   string `json:"description" validate:"required"`
-	Specification string `json:"specification" validate:"required"`
+	Description   string `json:"description" validate:"required" form:"description"`
+	Specification string `json:"specification" validate:"required" form:"specification"`
 }
 
 type ProductInput struct {
@@ -34,7 +34,7 @@ type ProductInput struct {
 type Inventory struct {
 	gorm.Model      `json:"-"`
 	ProductId       int
-	Quantity        int `validate:"required,numeric"`
+	Quantity        int `validate:"required,numeric" form:"quantity"`
 	ProductCategory int
 }
 type Category struct {
@@ -46,15 +46,14 @@ type Category struct {
 
 type Coupon struct {
 	gorm.Model `json:"-"`
-	Id         int       `json:"id"`
-	Code       string    `json:"code"   `
-	Type       string    `json:"type"`
-	Amount     int       `json:"amount"`
+	Id         int       `json:"id" `
+	Code       string    `json:"code" validate:"required,max=8"   `
+	Type       string    `json:"type" validate:"required,alpha"`
+	Amount     int       `json:"amount" validate:"required,numeric,positive"`
 	ValidFrom  time.Time `json:"-"`
 	Validuntil time.Time `json:"valid_until"`
-	UsageLimit int       `json:"usage_limit"`
+	UsageLimit int       `json:"usage_limit" validate:"required,numeric"`
 	UsedCount  int       `json:"usedcount"`
-	Category   int       `json:"category"`
 }
 
 type Offer struct {

@@ -36,3 +36,10 @@ type OtpKey struct {
 	Key   string `json:"key"`
 	Phone string `json:"phone"`
 }
+type ListUsersResponse struct {
+    Users []User `json:"users"`
+}
+
+type ErrorResponse struct {
+    Error string `json:"error"`
+}

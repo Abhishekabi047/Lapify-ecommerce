@@ -328,7 +328,7 @@ func (uu *UserUseCase) ExecuteShowUserDetails(userid int) (*entity.User, *entity
 	if err != nil {
 		return nil, nil, err
 	}
-	address, err1 := uu.userRepo.GetAddressById(userid)
+	address, err1 := uu.userRepo.GetAddressByID(userid)
 	if err1 != nil {
 		return nil, nil, err1
 	}

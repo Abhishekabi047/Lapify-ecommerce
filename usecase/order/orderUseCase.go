@@ -229,8 +229,7 @@ func (rp *OrderUseCase) ExecuteRazorPay(userId, address int) (string, int, error
 		return "", 0, errors.New("address not found")
 	}
 	// client := razorpay.NewClient("rzp_test_leWrFNIomWqk5W", "R59k58EhgS48BaauF22urj5A")
-	client := razorpay.NewClient(rp.razopay.RazopayKey,rp.razopay.RazopaySecret)
-	
+	client := razorpay.NewClient(rp.razopay.RazopayKey, rp.razopay.RazopaySecret)
 
 	data := map[string]interface{}{
 		"amount":   int(cart.TotalPrize),
@@ -640,4 +639,98 @@ func (co *OrderUseCase) ExecutPrintInvoice(orderId, userid int) (*gofpdf.Fpdf, e
 	pdf.Cell(0, 10, "Total Amount: $"+strconv.FormatFloat(float64(orde.Total), 'f', 2, 64))
 
 	return pdf, nil
+}
+
+func (ou *OrderUseCase) ExecutePaymentWallet(userId, addressId int) (*entity.Invoice, error) {
+	var orderItems []entity.OrderItem
+	user, err := ou.userRepo.GetById(userId)
+	if err != nil {
+		return nil, err
+	}
+	cart, err := ou.cartRepo.GetByUserid(userId)
+	if err != nil {
+		return nil, err
+	}
+	if user.Wallet < int(cart.TotalPrize) {
+		return nil, errors.New("wallet have not enough money, add moer money or use another payment method ")
+	}
+	cartitems, err1 := ou.cartRepo.GetAllCartItems(int(cart.ID))
+	if err1 != nil {
+		return nil, err
+	}
+	userAddres, err := ou.userRepo.GetAddressById(addressId)
+	if err != nil {
+		return nil, err
+	}
+	Total := cart.TotalPrize - cart.OfferPrize
+
+	order := &entity.Order{
+		UserId:        cart.UserId,
+		Addressid:     int(userAddres.ID),
+		Total:         Total,
+		Status:        "pending",
+		PaymentMethod: "wallet",
+		PaymentStatus: "succesful",
+	}
+
+	orderId, err := ou.orderRepo.Create(order)
+	if err != nil {
+		return nil, errors.New("eroor creating user")
+	}
+	user.Wallet -= int(order.Total)
+	err = ou.orderRepo.UpdateUserWallet(user)
+	if err != nil {
+		return nil, errors.New("wallet upadtion failed")
+	}
+	invoiceData := &entity.Invoice{
+		OrderId:     orderId,
+		UserId:      userId,
+		AddressType: userAddres.Type,
+		Quantity:    cart.ProductQuantity,
+		Price:       float64(order.Total),
+		Payment:     order.PaymentMethod,
+		Status:      order.PaymentStatus,
+		PaymentId:   "nil",
+		Remark:      "",
+	}
+	Invoice, err := ou.orderRepo.CreateInvoice(invoiceData)
+	if err != nil {
+		return nil, errors.New("failed to create invoice")
+	}
+	for _, cartItem := range cartitems {
+		orderitem := entity.OrderItem{
+			OrderId:   orderId,
+			ProductId: cartItem.ProductId,
+			Category:  cartItem.Category,
+			Quantity:  cartItem.Quantity,
+			Prize:     cartItem.Price,
+		}
+		orderItems = append(orderItems, orderitem)
+		inventory := entity.Inventory{
+			ProductId:       cartItem.ProductId,
+			ProductCategory: cartItem.Category,
+			Quantity:        cartItem.Quantity,
+		}
+
+		err := ou.productRepo.DecreaseProductQuantity(&inventory)
+		if err != nil {
+			return nil, err
+		}
+	}
+	err3 := ou.orderRepo.CreateOrderItems(orderItems)
+	if err3 != nil {
+		return nil, errors.New("Errro creating orderitems")
+	}
+	err = ou.cartRepo.RemoveCartItems(int(cart.ID))
+	if err != nil {
+		return nil, errors.New("Delete cart items failed")
+	}
+	cart.TotalPrize = 0
+	cart.OfferPrize = 0
+	cart.ProductQuantity = 0
+	err = ou.cartRepo.UpdateCart(cart)
+	if err != nil {
+		return nil, errors.New("Updating cart failed")
+	}
+	return Invoice, nil
 }

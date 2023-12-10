@@ -20,13 +20,26 @@ import (
 
 type OrderHandler struct {
 	OrderUseCase *usecase.OrderUseCase
-	Razorpay config.Razopay
+	Razorpay     config.Razopay
 }
 
-func NewOrderHandler(OrderUseCase *usecase.OrderUseCase,Razorpay config.Razopay) *OrderHandler {
-	return &OrderHandler{OrderUseCase,Razorpay}
+func NewOrderHandler(OrderUseCase *usecase.OrderUseCase, Razorpay config.Razopay) *OrderHandler {
+	return &OrderHandler{OrderUseCase, Razorpay}
 }
 
+// PlaceOrder godoc
+// @Summary Place an order
+// @Description Places an order for the authenticated user based on the selected payment method.
+// @ID place-order
+// @Accept multipart/form-data
+// @Produce json
+// @Param addressid formData int true "Address ID for the order"
+// @Param payment formData string true "Payment method ('cod', 'razorpay', 'wallet')"
+// @Success 200 {string} string "Invoice details" "Successful response for COD payment"
+// @Success 200 {string} string "Complete your Razorpay payment through. Razorpay ID: {razorId}, Order ID: {orderid}, User ID: {userid}" "Successful response for Razorpay payment"
+// @Success 200 {string} string "Invoice details" "Successful response for Wallet payment"
+// @Failure 400 {string} string "Bad request"
+// @Router /user/order/place [post]
 func (oh *OrderHandler) PlaceOrder(c *gin.Context) {
 	userID, _ := c.Get("userId")
 	userid := userID.(int)
@@ -49,15 +62,35 @@ func (oh *OrderHandler) PlaceOrder(c *gin.Context) {
 		razorId, orderId, err1 := oh.OrderUseCase.ExecuteRazorPay(userid, addressId)
 		if err1 != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err1.Error()})
+			return
 		}
 		// c.HTML(http.StatusOK, "razor.html", gin.H{
 		// 	"message": "make payment",
 		// 	"razorId": razorId,
 		// 	"orderid": orderId})
 		c.JSON(http.StatusOK, gin.H{"message": "complete your razor pay through ", "razorId": razorId, "orderid": orderId, "userid": userid})
+	} else if PaymentMethod == "wallet" {
+		invoice, err2 := oh.OrderUseCase.ExecutePaymentWallet(userid, addressId)
+		if err2 != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err2.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"Invoice": invoice})
 	}
 }
 
+// PaymentVerification godoc
+// @Summary Verify payment for Razorpay
+// @Description Verifies the payment for Razorpay based on the provided signature, Razorpay ID, and payment ID.
+// @ID verify-payment-razorpay
+// @Accept multipart/form-data
+// @Produce json
+// @Param sign formData string true "Signature for payment verification"
+// @Param razorid formData string true "Razorpay ID"
+// @Param paymentid formData string true "Payment ID"
+// @Success 200 {string} string "Payment successful. Invoice details: {invoice}"
+// @Failure 400 {string} string "Bad request"
+// @Router /order/payment/verify [post]
 func (co *OrderHandler) PaymentVerification(c *gin.Context) {
 	Signature := c.PostForm("sign")
 	razorId := c.PostForm("razorid")
@@ -70,6 +103,15 @@ func (co *OrderHandler) PaymentVerification(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "payment succesful", "invoice": invoice})
 }
 
+// CancelOrder godoc
+// @Summary Cancel an order
+// @Description Cancels an order based on the provided order ID.
+// @ID cancel-order
+// @Produce json
+// @Param orderid path int true "Order ID to be canceled"
+// @Success 200 {string} string "Order canceled successfully"
+// @Failure 400 {string} string "Bad request"
+// @Router /user/order/cancel/{orderid} [patch]
 func (co *OrderHandler) CancelOrder(c *gin.Context) {
 	strorderId := c.Param("orderid")
 	orderid, err := strconv.Atoi(strorderId)
@@ -90,6 +132,16 @@ func (co *OrderHandler) CancelOrder(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"order cancceled ": updatedorder})
 }
 
+// OrderHistory godoc
+// @Summary Retrieve order history for the authenticated user
+// @Description Retrieves the order history for the authenticated user based on pagination parameters.
+// @ID get-order-history
+// @Produce json
+// @Param page query int false "Page number for pagination (default is 1)"
+// @Param limit query int false "Number of items per page (default is 5)"
+// @Success 200 {string} string "Order history retrieved successfully"
+// @Failure 400 {string} string "Bad request"
+// @Router /user/order/history [get]
 func (co *OrderHandler) OrderHistory(c *gin.Context) {
 	userID, _ := c.Get("userId")
 	userid := userID.(int)
@@ -113,6 +165,16 @@ func (co *OrderHandler) OrderHistory(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"orderlist": orderlist})
 }
 
+// AdminOrderUpdate godoc
+// @Summary Update order status (Admin)
+// @Description Updates the status of an order based on the provided order ID and status (for admin use).
+// @ID admin-update-order
+// @Produce json
+// @Param orderid path int true "Order ID to be updated"
+// @Param status formData string true "New status for the order"
+// @Success 200 {string} string "Order updated successfully. Updated order status: {updated order status}"
+// @Failure 400 {string} string "Bad request"
+// @Router /admin/order/update/{orderid} [patch]
 func (op *OrderHandler) AdminOrderUpdate(c *gin.Context) {
 	strorderid := c.Param("orderid")
 	orderid, err := strconv.Atoi(strorderid)
@@ -134,6 +196,16 @@ func (op *OrderHandler) AdminOrderUpdate(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": "order updated", "updated order": orderstatus})
 }
 
+// AdminOrderDetails godoc
+// @Summary Retrieve order details for admin
+// @Description Retrieves the order details for admin based on pagination parameters.
+// @ID get-admin-order-details
+// @Produce json
+// @Param page query int false "Page number for pagination (default is 1)"
+// @Param limit query int false "Number of items per page (default is 5)"
+// @Success 200 {string} string "Order details retrieved successfully"
+// @Failure 400 {string} string "Bad request"
+// @Router /admin/order/details [get]
 func (op *OrderHandler) AdminOrderDetails(c *gin.Context) {
 	strpage := c.DefaultQuery("page", "1")
 	page, err := strconv.Atoi(strpage)
@@ -155,6 +227,15 @@ func (op *OrderHandler) AdminOrderDetails(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"orderlist": orderlist})
 }
 
+// AdminCancelOrder godoc
+// @Summary Cancel order (Admin)
+// @Description Cancels an order based on the provided order ID (for admin use).
+// @ID admin-cancel-order
+// @Produce json
+// @Param orderid path int true "Order ID to be canceled"
+// @Success 200 {string} string "Order cancelled successfully"
+// @Failure 400 {string} string "Bad request"
+// @Router /admin/order/cancel/{orderid} [patch]
 func (op *OrderHandler) AdminCancelOrder(c *gin.Context) {
 	strOrderid := c.Param("orderid")
 	orderid, err := strconv.Atoi(strOrderid)
@@ -170,9 +251,19 @@ func (op *OrderHandler) AdminCancelOrder(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "order cancelled"})
 }
 
+// SalesReportByDate godoc
+// @Summary Generate sales report by date range
+// @Description Generates a sales report based on the provided start and end dates.
+// @ID sales-report-by-date
+// @Produce json
+// @Param start path string true "Start date for the report (format: 2-1-2006)"
+// @Param end path string true "End date for the report (format: 2-1-2006)"
+// @Success 200 {string} string "Sales report generated successfully"
+// @Failure 400 {string} string "Bad request"
+// @Router /admin/salesreport/date/{start}/{end} [get]
 func (or *OrderHandler) SalesReportByDate(c *gin.Context) {
-	startDateStr := c.PostForm("start")
-	endDateStr := c.PostForm("end")
+	startDateStr := c.Param("start")
+	endDateStr := c.Param("end")
 	startDate, err := time.Parse("2-1-2006", startDateStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -191,8 +282,17 @@ func (or *OrderHandler) SalesReportByDate(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"report": report})
 }
 
+// SalesReportByPeriod godoc
+// @Summary Generate sales report by period
+// @Description Generates a sales report based on the provided period.
+// @ID sales-report-by-period
+// @Produce json
+// @Param period path string true "Period for the report (e.g., 'monthly', 'quarterly', 'yearly')"
+// @Success 200 {string} string "Sales report generated successfully"
+// @Failure 400 {string} string "Bad request"
+// @Router /admin/salesreport/period/{period} [get]
 func (or *OrderHandler) SalesReportByPeriod(c *gin.Context) {
-	period := c.PostForm("period")
+	period := c.Param("period")
 
 	report, err := or.OrderUseCase.ExecuteSalesReportByPeriod(period)
 	if err != nil {
@@ -201,10 +301,21 @@ func (or *OrderHandler) SalesReportByPeriod(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"report": report})
 }
 
+// SalesReportByPayment godoc
+// @Summary Generate sales report by payment method and date range
+// @Description Generates a sales report based on the provided start and end dates and payment method.
+// @ID sales-report-by-payment
+// @Produce json
+// @Param start path string true "Start date for the report (format: 2-1-2006)"
+// @Param end path string true "End date for the report (format: 2-1-2006)"
+// @Param paymentmethod path string true "Payment method for the report"
+// @Success 200 {string} string "Sales report generated successfully"
+// @Failure 400 {string} string "Bad request"
+// @Router /admin/salesreport/payment/{start}/{end}/{paymentmethod} [get]
 func (or *OrderHandler) SalesReportByPayment(c *gin.Context) {
-	startDateStr := c.PostForm("start")
-	endDateStr := c.PostForm("end")
-	paymentmethod := c.PostForm("paymentmethod")
+	startDateStr := c.Param("start")
+	endDateStr := c.Param("end")
+	paymentmethod := c.Param("paymentmethod")
 	startDate, err := time.Parse("2-1-2006", startDateStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -388,6 +499,7 @@ func (cr *OrderHandler) HandleWebhook(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "suscces", "invoice": Resul})
 
 }
+
 func (or *OrderHandler) OrderStatus(c *gin.Context) {
 	strorderid := c.PostForm("orderid")
 	orderid, err := strconv.Atoi(strorderid)
@@ -404,39 +516,47 @@ func (or *OrderHandler) OrderStatus(c *gin.Context) {
 
 }
 
-func (or *OrderHandler) PrintInvoice(c *gin.Context){
-	userID,_:=c.Get("userId")
-	userid:=userID.(int)
-	strorderId:=c.PostForm("orderid")
-	orderid,err:=strconv.Atoi(strorderId)
-	if err != nil{
-		c.JSON(http.StatusBadRequest,gin.H{"error":err.Error()})
+// PrintInvoice godoc
+// @Summary Print invoice for an order
+// @Description Generates and downloads the invoice for a specific order.
+// @ID print-invoice
+// @Produce json
+// @Param orderid query int true "Order ID for which the invoice should be generated"
+// @Success 200 {string} string "Invoice generated and downloaded successfully"
+// @Failure 400 {string} string "Bad request"
+// @Router /user/order/invoice [get]
+func (or *OrderHandler) PrintInvoice(c *gin.Context) {
+	userID, _ := c.Get("userId")
+	userid := userID.(int)
+	strorderId := c.Query("orderid")
+	orderid, err := strconv.Atoi(strorderId)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	pdf,err:=or.OrderUseCase.ExecutPrintInvoice(orderid,userid)
-	if err != nil{
-		c.JSON(http.StatusBadRequest,gin.H{"error":err.Error()})
+	pdf, err := or.OrderUseCase.ExecutPrintInvoice(orderid, userid)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	c.Header("Content-Disposition","attachment;filename=Invoice.pdf")
-	c.Header("Content_Type","application/pdf")
-
+	c.Header("Content-Disposition", "attachment;filename=Invoice.pdf")
+	c.Header("Content_Type", "application/pdf")
 
 	err = pdf.Output(c.Writer)
-	if err != nil{
-		c.JSON(http.StatusBadRequest,gin.H{"errror":err.Error()})
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"errror": err.Error()})
 		return
 	}
 
-	pdfFilePath:="salesreport/invoice.pdf"
+	pdfFilePath := "salesreport/invoice.pdf"
 
 	err = pdf.OutputFileAndClose(pdfFilePath)
-	if err != nil{
-		c.JSON(http.StatusBadRequest,gin.H{"error":err.Error()})
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	c.File(pdfFilePath)
-	
 
-	
+	c.JSON(http.StatusOK, gin.H{"pdf": pdfFilePath})
+
 }

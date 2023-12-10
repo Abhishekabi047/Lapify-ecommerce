@@ -3,6 +3,7 @@ package repository
 import (
 	"errors"
 	"fmt"
+	"project/delivery/models"
 	"project/domain/entity"
 	"time"
 
@@ -17,13 +18,33 @@ func NewProductRepository(db *gorm.DB) *ProductRepository {
 	return &ProductRepository{db}
 }
 
-func (pr *ProductRepository) GetAllProducts(offset, limit int) ([]entity.Product, error) {
-	var Products []entity.Product
-	err := pr.db.Offset(offset).Limit(limit).Where("removed=?", false).Find(&Products).Error
+func (pr *ProductRepository) GetAllProducts(offset, limit int) (*[]models.ProductWithQuantityResponse, error) {
+	var productsWithQuantity []models.ProductWithQuantityResponse
+
+	rows, err := pr.db.
+		Table("products").
+		Select("products.id, products.name, products.price, products.offer_prize, products.size, products.category, products.image_url, inventories.quantity").
+		Joins("JOIN inventories ON products.id = inventories.product_id").
+		Offset(offset).
+		Limit(limit).
+		Where("products.removed = ?", false).
+		Where("inventories.quantity >= ?", 1).
+		Rows()
+
 	if err != nil {
 		return nil, err
 	}
-	return Products, nil
+	defer rows.Close()
+
+	for rows.Next() {
+		var productWithQuantity models.ProductWithQuantityResponse
+		if err := pr.db.ScanRows(rows, &productWithQuantity); err != nil {
+			return nil, err
+		}
+		productsWithQuantity = append(productsWithQuantity, productWithQuantity)
+	}
+
+	return &productsWithQuantity, nil
 }
 
 func (au *ProductRepository) GetProductDetailsById(id int) (*entity.ProductDetails, error) {
@@ -123,6 +144,21 @@ func (cn *ProductRepository) DeleteCategory(Id int) error {
 	return nil
 
 }
+
+
+func (cn *ProductRepository) DeleteProductByCategory(Id int) error {
+
+	err := cn.db.Where("category=?",Id).Delete(&entity.Product{}).Error
+	if err != nil {
+		return errors.New("Coudnt delete")
+	}
+	return nil
+
+}
+
+
+
+
 func (pr *ProductRepository) CreateInventory(inventory *entity.Inventory) error {
 	return pr.db.Create(inventory).Error
 }
@@ -155,6 +191,12 @@ func (pr *ProductRepository) GetCouponByCode(code string) (*entity.Coupon, error
 
 func (pr *ProductRepository) UpdateCouponCount(coupon *entity.Coupon) error {
 	return pr.db.Save(coupon).Error
+}
+
+func (repo *ProductRepository) UpdateCouponCounts(coupon *entity.Coupon) error {
+    // Assuming 'db' is your GORM instance
+    err := repo.db.Model(&entity.Coupon{}).Where("id = ?", coupon.ID).Update("used_count", coupon.UsedCount).Error
+    return err
 }
 
 func (pr *ProductRepository) UpdateCouponUsage(coupon *entity.UsedCoupon) error {
@@ -224,7 +266,7 @@ func (pr *ProductRepository) DeleteCoupon(code string) error {
 func (ar *ProductRepository) GetProductsBySearch(offset, limit int, search string) ([]entity.Product, error) {
 	var products []entity.Product
 
-	err := ar.db.Select("id, name, price, category, image_url, size").Where("name LIKE ?", search+"%").Offset(offset).Limit(limit).Find(&products).Error
+	err := ar.db.Select("id, name, price, category, image_url, size").Where("name iLIKE ?",  "%"+search+"%").Offset(offset).Limit(limit).Find(&products).Error
 	if err != nil {
 		return nil, errors.New("record not found")
 	}
@@ -285,4 +327,12 @@ func (ar *ProductRepository) GetProductsByCategoryoffer(id int) ([]entity.Produc
 		return nil, errors.New("record not found")
 	}
 	return product, nil
+}
+
+func (pr *ProductRepository) BeginTransaction() *gorm.DB {
+	return pr.db.Begin()
+}
+func (dp *ProductRepository) DeleteProductId(id int) error {
+	var product *entity.Product
+	return dp.db.Where("id=?", id).Delete(&product).Error
 }

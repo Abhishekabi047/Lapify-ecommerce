@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"mime/multipart"
 	"project/config"
+	"project/delivery/models"
 	"project/domain/entity"
 	"project/domain/utils"
 	repository "project/repository/product"
-	"strconv"
 
 	"github.com/go-playground/validator/v10"
 	"gorm.io/gorm"
@@ -23,13 +23,13 @@ func NewProduct(productRepo *repository.ProductRepository, s3 *config.S3Bucket) 
 	return &ProductUseCase{productRepo: productRepo, s3: *s3}
 }
 
-func (pu *ProductUseCase) ExecuteProductList(page, limit int) ([]entity.Product, error) {
+func (pu *ProductUseCase) ExecuteProductList(page, limit int) ([]models.ProductWithQuantityResponse, error) {
 	offset := (page - 1) * limit
 	productlist, err := pu.productRepo.GetAllProducts(offset, limit)
 	if err != nil {
 		return nil, err
 	} else {
-		return productlist, nil
+		return *productlist, nil
 	}
 }
 
@@ -84,10 +84,10 @@ func (pu *ProductUseCase) ExecuteCreateProduct(product entity.Product, image *mu
 
 	ImageURL, err := utils.UploadImageToS3(image, sess)
 	if err != nil {
-		fmt.Println("err:",err)
+		fmt.Println("err:", err)
 		return 0, err
 	}
-	fmt.Println("err:",err)
+	fmt.Println("err:", err)
 	newprod.ImageURL = ImageURL
 	fmt.Println("image,", ImageURL)
 	productid, err := pu.productRepo.CreateProduct(newprod)
@@ -98,11 +98,17 @@ func (pu *ProductUseCase) ExecuteCreateProduct(product entity.Product, image *mu
 	}
 }
 
+// func PositiveNumeric(fl validator.FieldLevel) bool {
+// 	value, err := strconv.ParseInt(fl.Field().String(),10, 64)
+// 	if err != nil {
+// 		return false
+// 	}
+// 	return value >= 0
+// }
+
 func PositiveNumeric(fl validator.FieldLevel) bool {
-	value, err := strconv.ParseFloat(fl.Field().String(), 64)
-	if err != nil {
-		return false
-	}
+	value := fl.Field().Int()
+
 	return value >= 0
 }
 
@@ -278,6 +284,10 @@ func (pu *ProductUseCase) ExecuteDeleteCategory(Id int) error {
 	if err != nil {
 		return err
 	}
+	err1:=pu.productRepo.DeleteProductByCategory(category.ID)
+	if err1 != nil{
+		return err
+	}
 
 	return nil
 }
@@ -319,6 +329,30 @@ func (pu *ProductUseCase) ExecuteCreateInventory(inventory entity.Inventory) err
 }
 
 func (p *ProductUseCase) ExecuteAddCoupon(coupon *entity.Coupon) error {
+	validate := validator.New()
+
+	validate.RegisterValidation("positive", PositiveNumeric)
+	if err := validate.Struct(coupon); err != nil {
+		if _, ok := err.(*validator.InvalidValidationError); ok {
+			return err
+		}
+		errors := err.(validator.ValidationErrors)
+		errorMsg := "Validation failed: "
+		for _, e := range errors {
+			switch e.Tag() {
+			case "required":
+				errorMsg += fmt.Sprintf("%s is required; ", e.Field())
+			case "numeric":
+				errorMsg += fmt.Sprintf("%s should contain only numeric characters; ", e.Field())
+			case "positive":
+				errorMsg += fmt.Sprintf("%s should be a positive numeric value; ", e.Field())
+			default:
+				errorMsg += fmt.Sprintf("%s has an invalid value; ", e.Field())
+			}
+		}
+		return fmt.Errorf(errorMsg)
+	}
+
 	err := p.productRepo.CreateCoupon(coupon)
 	if err != nil {
 		return errors.New("creating coupon failed")
@@ -364,6 +398,13 @@ func (pu *ProductUseCase) ExecuteGetCouponByCode(code string) (*entity.Coupon, e
 		return nil, err
 	}
 	return coup, nil
+}
+func (pu *ProductUseCase) ExecuteGetProductById(id int) (*entity.Product, error) {
+	prod, err := pu.productRepo.GetProductById(id)
+	if err != nil {
+		return nil, err
+	}
+	return prod, nil
 }
 
 func (pu *ProductUseCase) ExecuteDeleteCoupon(code string) error {
@@ -465,4 +506,16 @@ func (pu *ProductUseCase) ExecuteCategoryOffer(catid, offer int) ([]entity.Produ
 	}
 	return productlist, nil
 
+}
+
+func (pu *ProductUseCase) BeginTransaction() *gorm.DB {
+	return pu.productRepo.BeginTransaction()
+}
+
+func(au *ProductUseCase) ExecuteDeleteProductAdd(id int) error{
+	err:=au.productRepo.DeleteProductId(id)
+	if err != nil{
+		return err
+	}
+	return nil
 }

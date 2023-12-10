@@ -185,3 +185,4 @@ func (cn *UserRepository) GetByReferalCode(code string) (*entity.User, error) {
 	}
 	return &user, nil
 }
+

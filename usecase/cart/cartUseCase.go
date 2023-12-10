@@ -17,7 +17,7 @@ func NewCart(cartRepo *repository.CartRepository, productRepo *productrepository
 	return &CartUseCase{cartRepo: cartRepo, productRepo: productRepo}
 }
 
-func (cu *CartUseCase) ExecuteAddToCart(product string, id int, quantity int, userid int) error {
+func (cu *CartUseCase) ExecuteAddToCart( id int, quantity int, userid int) error {
 	var usercart *entity.Cart
 	var cartid int
 	usercart, err := cu.cartRepo.GetByUserid(userid)
@@ -82,7 +82,7 @@ func (cu *CartUseCase) ExecuteCartItems(userId int) ([]entity.CartItem, error) {
 	return cartItems, nil
 }
 
-func (cu *CartUseCase) ExecuteRemoveCartItem(userid, id int, product string) error {
+func (cu *CartUseCase) ExecuteRemoveCartItem(userid, id int) error {
 	usercart, err := cu.cartRepo.GetByUserid(userid)
 	if err != nil {
 		return errors.New("error finding user cart")
@@ -91,10 +91,15 @@ func (cu *CartUseCase) ExecuteRemoveCartItem(userid, id int, product string) err
 	if err != nil {
 		return errors.New("product not found")
 	}
-	existingProd, err := cu.cartRepo.GetByName(product, int(usercart.ID))
+	// existingProd, err := cu.cartRepo.GetByName(product, int(usercart.ID))
+	// if err != nil {
+	// 	return errors.New("removing product failed")
+	// }
+	existingProd, err := cu.cartRepo.GetByName(prod.Name, int(usercart.ID))
 	if err != nil {
 		return errors.New("removing product failed")
 	}
+
 
 	if existingProd.Quantity == 1 {
 		err := cu.cartRepo.RemoveCartItem(existingProd)
@@ -109,7 +114,11 @@ func (cu *CartUseCase) ExecuteRemoveCartItem(userid, id int, product string) err
 			return errors.New("error upadting user")
 		}
 	}
+	if prod.OfferPrize != 0{
+		usercart.TotalPrize -= int(prod.OfferPrize)
+	}else{
 	usercart.TotalPrize -= int(prod.Price)
+	}
 	usercart.ProductQuantity -= 1
 	if usercart.OfferPrize > 0 {
 		usercart.OfferPrize = 0
@@ -182,6 +191,9 @@ func (c *CartUseCase) ExecuteApplyCoupon(userId int, code string) (int, error) {
 	if err != nil {
 		return 0, errors.New("coupon not found")
 	}
+	if coupon.UsedCount >= coupon.UsageLimit{
+		return 0,errors.New("coupon usage exeeded")
+	}else{
 	// cartitems, err := c.cartRepo.GetAllCartItems(int(usercart.ID))
 	// if err != nil {
 	// 	return 0, errors.New("user cart item not found")
@@ -218,13 +230,13 @@ func (c *CartUseCase) ExecuteApplyCoupon(userId int, code string) (int, error) {
 		if err1 != nil {
 			return 0, errors.New("user coupon usage updation failed")
 		}
-		var coupons = entity.Coupon{
-			UsedCount: coupon.UsedCount + 1,
-		}
-		err = c.productRepo.UpdateCouponCount(&coupons)
+		coupon.UsedCount=coupon.UsedCount + 1
+		
+		err = c.productRepo.UpdateCouponCount(coupon)
 		if err != nil {
 			return 0, errors.New("user update coupon count failed")
 		}
+	}
 
 	}
 	return totaloffer, nil

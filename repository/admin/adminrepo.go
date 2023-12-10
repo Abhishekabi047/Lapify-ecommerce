@@ -50,7 +50,7 @@ func (ar *AdminRepository) GetById(id int) (*entity.User, error) {
 	result := ar.db.Where(&entity.User{Id: id}).First(&user)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return nil, nil
+			return nil, result.Error
 		}
 		return nil, result.Error
 	}
@@ -133,4 +133,24 @@ func (ar *AdminRepository) GetRevenue() (int, error) {
 		return 0, err
 	}
 	return int(totalrevenue), nil
+}
+
+func (ar *AdminRepository) GetstocklessProducts() (*[]entity.Inventory, error) {
+
+	var stocklessProducts []entity.Inventory
+
+	if err := ar.db.Model(&entity.Inventory{}).Where("quantity=?", 0).Find(&stocklessProducts).Error; err != nil {
+		return nil, err
+	}
+	return &stocklessProducts, nil
+}
+
+func (ar *AdminRepository) GetUsersBySearch(offset, limit int, search string) ([]entity.User, error) {
+	var users []entity.User
+
+	err := ar.db.Where("name iLIKE ?", search+"%").Offset(offset).Limit(limit).Find(&users).Error
+	if err != nil {
+		return nil, errors.New("record not found")
+	}
+	return users, nil
 }

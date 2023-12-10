@@ -1,0 +1,270 @@
+definitions:
+  entity.AdminLogin:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  entity.Category:
+    properties:
+      description:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+    required:
+    - description
+    - name
+    type: object
+  entity.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  entity.ListUsersResponse:
+    properties:
+      users:
+        items:
+          $ref: '#/definitions/entity.User'
+        type: array
+    type: object
+  entity.User:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+      password:
+        minLength: 8
+        type: string
+      phone:
+        type: string
+      referalcode:
+        type: string
+      wallet:
+        type: integer
+    required:
+    - email
+    - name
+    - password
+    - phone
+    type: object
+  models.ProductWithQuantityResponse:
+    properties:
+      category:
+        type: integer
+      id:
+        type: integer
+      image_url:
+        type: string
+      name:
+        type: string
+      offerprice:
+        type: integer
+      price:
+        type: integer
+      quantity:
+        type: integer
+      size:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: API for ecommerce website
+  title: lapify eCommerce API
+  version: "1.0"
+paths:
+  /admin/categories:
+    post:
+      consumes:
+      - application/json
+      description: Create a new category by providing the category details.
+      operationId: create-category
+      parameters:
+      - description: Category details
+        in: body
+        name: category
+        required: true
+        schema:
+          $ref: '#/definitions/entity.Category'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'success": "Category added successfully" entity.Category'
+          schema:
+            type: string
+        "400":
+          description: 'error": "Invalid input" entity.ErrorResponse'
+          schema:
+            type: string
+      summary: Create a new category
+  /admin/categories/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete an existing category based on the provided ID
+      operationId: deleteCategory
+      parameters:
+      - description: Category ID
+        format: int64
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'success": "Category deleted successfully'
+          schema:
+            type: string
+        "400":
+          description: 'error": "Failed to delete category'
+          schema:
+            type: string
+      summary: Delete a category
+      tags:
+      - Admin
+    put:
+      consumes:
+      - application/json
+      description: Edit a category based on the provided JSON data
+      operationId: editCategory
+      parameters:
+      - description: Category ID
+        format: int64
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Category object to be edited
+        in: body
+        name: category
+        required: true
+        schema:
+          $ref: '#/definitions/entity.Category'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'success": "product edited successfully", "edited category":
+            entity.Category'
+          schema:
+            type: string
+        "400":
+          description: 'error": "editing category failed'
+          schema:
+            type: string
+      summary: Edit a category
+      tags:
+      - admin
+  /admin/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate admin using email and password and generate an authentication
+        token.
+      operationId: admin-login
+      parameters:
+      - description: Admin Data
+        in: body
+        name: admin
+        required: true
+        schema:
+          $ref: '#/definitions/entity.AdminLogin'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message": "Admin logged in successfully'
+          schema:
+            type: string
+        "400":
+          description: 'error": "Empty request body'
+          schema:
+            type: string
+      summary: Admin Login with Password
+  /admin/products:
+    get:
+      description: Retrieve a list of products for the admin dashboard.
+      operationId: get-admin-products
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.ProductWithQuantityResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+      summary: Get a list of products for admin
+  /admin/users:
+    get:
+      consumes:
+      - application/json
+      description: Get a paginated list of users.
+      operationId: list-users
+      parameters:
+      - description: Page number (default is 1)
+        in: query
+        name: page
+        type: integer
+      - description: Number of users per page (default is 5)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.ListUsersResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/entity.ErrorResponse'
+      summary: List Users
+  /admin/users/toggle-permission/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Toggle the permission of a user by providing the user's ID.
+      operationId: toggle-user-permission
+      parameters:
+      - description: User ID
+        format: int32
+        in: path
+        minimum: 1
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'success: User permission toggled successfully'
+          schema:
+            type: string
+        "400":
+          description: 'error: Invalid user ID'
+          schema:
+            type: string
+        "401":
+          description: 'error: User not found'
+          schema:
+            type: string
+      summary: Toggle User Permission
+securityDefinitions:
+  JWT:
+    in: cookie
+    name: Authorise
+    type: apiKey
+swagger: "2.0"

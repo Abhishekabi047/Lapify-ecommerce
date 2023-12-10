@@ -71,7 +71,7 @@ func (au *AdminUseCase) ExecuteUsersList(page, limit int) ([]entity.User, error)
 	return userlist, nil
 }
 func (tp *AdminUseCase) ExecuteTogglePermission(id int) error {
-	result, err := tp.adminRepo.GetById(id)
+	result,err := tp.adminRepo.GetById(id)
 	if err != nil {
 		return err
 	}
@@ -121,4 +121,21 @@ func (ad *AdminUseCase) ExecuteAdminDashBoard() (*entity.AdminDashboard, error) 
 		TotalRevenue:      totalrevenue,
 	}
 	return &dashboardResponse, nil
+}
+
+func(au *AdminUseCase) ExecuteStocklessProducts() (*[]entity.Inventory,error){
+	prod,err:=au.adminRepo.GetstocklessProducts()
+	if err != nil{
+		return nil,err
+	}
+	return prod,nil
+}
+
+func (pu *AdminUseCase) ExecuteUserSearch(page, limit int, search string) ([]entity.User, error) {
+	offset := (page - 1) * limit
+	users, err := pu.adminRepo.GetUsersBySearch(offset, limit, search)
+	if err != nil {
+		return nil, err
+	}
+	return users,nil
 }
