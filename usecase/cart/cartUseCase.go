@@ -130,12 +130,12 @@ func (cu *CartUseCase) ExecuteRemoveCartItem(userid, id int) error {
 	return nil
 }
 
-func (cu *CartUseCase) ExecuteAddWishlist(category int, productid int, userid int) error {
+func (cu *CartUseCase) ExecuteAddWishlist(productid int, userid int) error {
 	product, err := cu.productRepo.GetProductById(productid)
 	if err != nil {
 		return errors.New("product not found")
 	}
-	exisiting, err := cu.cartRepo.GetProductsFromWishlist(product.Category, product.ID, userid)
+	exisiting, err := cu.cartRepo.GetProductsFromWishlist( product.ID, userid)
 	if err != nil {
 		return errors.New("error finding exisiting product")
 	}
@@ -157,13 +157,13 @@ func (cu *CartUseCase) ExecuteAddWishlist(category int, productid int, userid in
 	return nil
 }
 
-func (cu *CartUseCase) ExecuteRemoveFromWishList(category, productid, userid int) error {
-	exisiting, err := cu.cartRepo.GetProductsFromWishlist(category, productid, userid)
+func (cu *CartUseCase) ExecuteRemoveFromWishList( productid, userid int) error {
+	exisiting, err := cu.cartRepo.GetProductsFromWishlist( productid, userid)
 	if err != nil {
 		return errors.New("error getting products")
 	}
 	if exisiting == true {
-		err := cu.cartRepo.RemoveFromWishlist(category, productid, userid)
+		err := cu.cartRepo.RemoveFromWishlist(productid, userid)
 		if err != nil {
 			return errors.New("error removing products from wishlist")
 		}

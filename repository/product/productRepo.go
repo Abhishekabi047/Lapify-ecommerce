@@ -107,6 +107,15 @@ func (cc *ProductRepository) CreateCategory(category *entity.Category) (int, err
 	return category.ID, nil
 }
 
+func (cc *ProductRepository) AllCategory() (*[]entity.Category, error) {
+	var category []entity.Category
+	err := cc.db.Find(&category).Error
+	if err != nil {
+		return nil, errors.New("record not found")
+	}
+	return &category, nil
+}
+
 func (uc *ProductRepository) UpdateCategory(category *entity.Category) error {
 	return uc.db.Save(category).Error
 }
@@ -145,19 +154,15 @@ func (cn *ProductRepository) DeleteCategory(Id int) error {
 
 }
 
-
 func (cn *ProductRepository) DeleteProductByCategory(Id int) error {
 
-	err := cn.db.Where("category=?",Id).Delete(&entity.Product{}).Error
+	err := cn.db.Where("category=?", Id).Delete(&entity.Product{}).Error
 	if err != nil {
 		return errors.New("Coudnt delete")
 	}
 	return nil
 
 }
-
-
-
 
 func (pr *ProductRepository) CreateInventory(inventory *entity.Inventory) error {
 	return pr.db.Create(inventory).Error
@@ -194,9 +199,9 @@ func (pr *ProductRepository) UpdateCouponCount(coupon *entity.Coupon) error {
 }
 
 func (repo *ProductRepository) UpdateCouponCounts(coupon *entity.Coupon) error {
-    // Assuming 'db' is your GORM instance
-    err := repo.db.Model(&entity.Coupon{}).Where("id = ?", coupon.ID).Update("used_count", coupon.UsedCount).Error
-    return err
+	// Assuming 'db' is your GORM instance
+	err := repo.db.Model(&entity.Coupon{}).Where("id = ?", coupon.ID).Update("used_count", coupon.UsedCount).Error
+	return err
 }
 
 func (pr *ProductRepository) UpdateCouponUsage(coupon *entity.UsedCoupon) error {
@@ -266,7 +271,7 @@ func (pr *ProductRepository) DeleteCoupon(code string) error {
 func (ar *ProductRepository) GetProductsBySearch(offset, limit int, search string) ([]entity.Product, error) {
 	var products []entity.Product
 
-	err := ar.db.Select("id, name, price, category, image_url, size").Where("name iLIKE ?",  "%"+search+"%").Offset(offset).Limit(limit).Find(&products).Error
+	err := ar.db.Select("id, name, price, category, image_url, size").Where("name iLIKE ?", "%"+search+"%").Offset(offset).Limit(limit).Find(&products).Error
 	if err != nil {
 		return nil, errors.New("record not found")
 	}
@@ -335,4 +340,17 @@ func (pr *ProductRepository) BeginTransaction() *gorm.DB {
 func (dp *ProductRepository) DeleteProductId(id int) error {
 	var product *entity.Product
 	return dp.db.Where("id=?", id).Delete(&product).Error
+}
+
+func (dp *ProductRepository) GetInventoryByID(id int) (*entity.Inventory, error) {
+	var prod entity.Inventory
+	err := dp.db.Where("product_id=?", id).First(&prod).Error
+	if err != nil {
+		return nil, errors.New("record not found")
+	}
+	return &prod, nil
+}
+
+func (up *ProductRepository) UpdateInventory(inventory *entity.Inventory) error {
+	return up.db.Save(inventory).Error
 }

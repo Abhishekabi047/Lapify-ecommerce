@@ -25,6 +25,6 @@ func OrderRouter(r *gin.Engine, orderHandler *handlers.OrderHandler) *gin.Engine
 
 	r.GET("/user/stripe", m.UserRetreiveCookie, orderHandler.ExecutePaymentStripe)
 	r.POST("/webhook", orderHandler.HandleWebhook)
-	r.GET("/user/orderstatus", m.UserRetreiveCookie, orderHandler.OrderStatus)
+	r.GET("/user/orderstatus/:orderid", m.UserRetreiveCookie, orderHandler.OrderStatus)
 	return r
 }

@@ -16,12 +16,14 @@ func AdminRouter(r *gin.Engine, adminHandler *handlers.AdminHandler) *gin.Engine
 	r.PUT("/admin/users/toggle-permission/:id", m.AdminRetreiveToken, adminHandler.TogglePermission)
 	r.GET("admin/search/users", m.AdminRetreiveToken, adminHandler.SearchUsers)
 
+	r.GET("/admin/categories", m.AdminRetreiveToken, adminHandler.AllCategory)
 	r.POST("/admin/categories", m.AdminRetreiveToken, adminHandler.CreateCategory)
 	r.PUT("/admin/categories/:id", m.AdminRetreiveToken, adminHandler.EditCategory)
 	r.DELETE("/admin/categories/:id", m.AdminRetreiveToken, adminHandler.DeleteCategory)
 
 	r.GET("/admin/products", m.AdminRetreiveToken, adminHandler.AdminProductlist)
 	r.POST("/admin/products", m.AdminRetreiveToken, adminHandler.CreateProduct)
+	r.PUT("/admin/products/stocks/:id", m.AdminRetreiveToken, adminHandler.AddStock)
 
 	r.PATCH("/admin/products/:id", m.AdminRetreiveToken, adminHandler.EditProduct)
 	r.DELETE("admin/products/:id", m.AdminRetreiveToken, adminHandler.DeleteProduct)
@@ -37,5 +39,6 @@ func AdminRouter(r *gin.Engine, adminHandler *handlers.AdminHandler) *gin.Engine
 
 	r.POST("/admin/product/offer", m.AdminRetreiveToken, adminHandler.AddProductOffer)
 	r.POST("/admin/category/offer", m.AdminRetreiveToken, adminHandler.AddCategoryOffer)
+	r.POST("/admin/logout", adminHandler.Logout)
 	return r
 }

@@ -32,6 +32,7 @@ func NewOrderHandler(OrderUseCase *usecase.OrderUseCase, Razorpay config.Razopay
 // @Description Places an order for the authenticated user based on the selected payment method.
 // @ID place-order
 // @Accept multipart/form-data
+// @Tags User Orders
 // @Produce json
 // @Param addressid formData int true "Address ID for the order"
 // @Param payment formData string true "Payment method ('cod', 'razorpay', 'wallet')"
@@ -64,10 +65,6 @@ func (oh *OrderHandler) PlaceOrder(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err1.Error()})
 			return
 		}
-		// c.HTML(http.StatusOK, "razor.html", gin.H{
-		// 	"message": "make payment",
-		// 	"razorId": razorId,
-		// 	"orderid": orderId})
 		c.JSON(http.StatusOK, gin.H{"message": "complete your razor pay through ", "razorId": razorId, "orderid": orderId, "userid": userid})
 	} else if PaymentMethod == "wallet" {
 		invoice, err2 := oh.OrderUseCase.ExecutePaymentWallet(userid, addressId)
@@ -84,6 +81,7 @@ func (oh *OrderHandler) PlaceOrder(c *gin.Context) {
 // @Description Verifies the payment for Razorpay based on the provided signature, Razorpay ID, and payment ID.
 // @ID verify-payment-razorpay
 // @Accept multipart/form-data
+// @Tags User Orders
 // @Produce json
 // @Param sign formData string true "Signature for payment verification"
 // @Param razorid formData string true "Razorpay ID"
@@ -107,6 +105,7 @@ func (co *OrderHandler) PaymentVerification(c *gin.Context) {
 // @Summary Cancel an order
 // @Description Cancels an order based on the provided order ID.
 // @ID cancel-order
+// @Tags User Orders
 // @Produce json
 // @Param orderid path int true "Order ID to be canceled"
 // @Success 200 {string} string "Order canceled successfully"
@@ -136,6 +135,7 @@ func (co *OrderHandler) CancelOrder(c *gin.Context) {
 // @Summary Retrieve order history for the authenticated user
 // @Description Retrieves the order history for the authenticated user based on pagination parameters.
 // @ID get-order-history
+// @Tags User Orders
 // @Produce json
 // @Param page query int false "Page number for pagination (default is 1)"
 // @Param limit query int false "Number of items per page (default is 5)"
@@ -169,6 +169,7 @@ func (co *OrderHandler) OrderHistory(c *gin.Context) {
 // @Summary Update order status (Admin)
 // @Description Updates the status of an order based on the provided order ID and status (for admin use).
 // @ID admin-update-order
+// @Tags Admin Orders
 // @Produce json
 // @Param orderid path int true "Order ID to be updated"
 // @Param status formData string true "New status for the order"
@@ -200,6 +201,7 @@ func (op *OrderHandler) AdminOrderUpdate(c *gin.Context) {
 // @Summary Retrieve order details for admin
 // @Description Retrieves the order details for admin based on pagination parameters.
 // @ID get-admin-order-details
+// @Tags Admin Orders
 // @Produce json
 // @Param page query int false "Page number for pagination (default is 1)"
 // @Param limit query int false "Number of items per page (default is 5)"
@@ -231,6 +233,7 @@ func (op *OrderHandler) AdminOrderDetails(c *gin.Context) {
 // @Summary Cancel order (Admin)
 // @Description Cancels an order based on the provided order ID (for admin use).
 // @ID admin-cancel-order
+// @Tags Admin Orders
 // @Produce json
 // @Param orderid path int true "Order ID to be canceled"
 // @Success 200 {string} string "Order cancelled successfully"
@@ -255,6 +258,7 @@ func (op *OrderHandler) AdminCancelOrder(c *gin.Context) {
 // @Summary Generate sales report by date range
 // @Description Generates a sales report based on the provided start and end dates.
 // @ID sales-report-by-date
+// @Tags Admin Report
 // @Produce json
 // @Param start path string true "Start date for the report (format: 2-1-2006)"
 // @Param end path string true "End date for the report (format: 2-1-2006)"
@@ -286,6 +290,7 @@ func (or *OrderHandler) SalesReportByDate(c *gin.Context) {
 // @Summary Generate sales report by period
 // @Description Generates a sales report based on the provided period.
 // @ID sales-report-by-period
+// @Tags Admin Report
 // @Produce json
 // @Param period path string true "Period for the report (e.g., 'monthly', 'quarterly', 'yearly')"
 // @Success 200 {string} string "Sales report generated successfully"
@@ -305,6 +310,7 @@ func (or *OrderHandler) SalesReportByPeriod(c *gin.Context) {
 // @Summary Generate sales report by payment method and date range
 // @Description Generates a sales report based on the provided start and end dates and payment method.
 // @ID sales-report-by-payment
+// @Tags Admin Report
 // @Produce json
 // @Param start path string true "Start date for the report (format: 2-1-2006)"
 // @Param end path string true "End date for the report (format: 2-1-2006)"
@@ -500,8 +506,18 @@ func (cr *OrderHandler) HandleWebhook(c *gin.Context) {
 
 }
 
+// OrderStatus godoc
+// @Summary Get the status of an order
+// @Description Retrieves the status of an order based on the provided order ID.
+// @ID get-order-status
+// @Tags User Orders
+// @Produce json
+// @Param orderid path int true "Order ID for which the status should be retrieved"
+// @Success 200 {string} string "Order status retrieved successfully"
+// @Failure 400 {string} string "Bad request"
+// @Router /user/orderstatus/{orderid} [get]
 func (or *OrderHandler) OrderStatus(c *gin.Context) {
-	strorderid := c.PostForm("orderid")
+	strorderid := c.Param("orderid")
 	orderid, err := strconv.Atoi(strorderid)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"errror": "str failed"})
@@ -520,6 +536,7 @@ func (or *OrderHandler) OrderStatus(c *gin.Context) {
 // @Summary Print invoice for an order
 // @Description Generates and downloads the invoice for a specific order.
 // @ID print-invoice
+// @Tags User Orders
 // @Produce json
 // @Param orderid query int true "Order ID for which the invoice should be generated"
 // @Success 200 {string} string "Invoice generated and downloaded successfully"

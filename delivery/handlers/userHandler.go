@@ -25,6 +25,18 @@ func NewUserhandler(UserUseCase *usecase.UserUseCase, ProductUseCase *Productuse
 	return &UserHandler{UserUseCase, ProductUseCase, CartUseCase}
 }
 
+// SignupWithOtp godoc
+// @Summary Sign up a user with OTP
+// @Description Registers a new user using OTP verification.
+// @ID signup-with-otp
+// @Accept json
+// @Tags User
+// @Produce json
+// @Param user body models.Signup true "User details for signup with OTP"
+// @Success 200 {string} string "OTP sent successfully to the provided phone number"
+// @Failure 400 {string} string "Bad request: Invalid request"
+// @Failure 500 {string} string "Internal Server Error: Something went wrong"
+// @Router /user/signup [post]
 func (uh *UserHandler) SignupWithOtp(c *gin.Context) {
 	var user models.Signup
 	if err := c.ShouldBindJSON(&user); err != nil {
@@ -40,6 +52,18 @@ func (uh *UserHandler) SignupWithOtp(c *gin.Context) {
 	}
 }
 
+// SignupOtpValidation godoc
+// @Summary Validate OTP for user signup
+// @Description Validates the provided OTP for user signup.
+// @ID signup-otp-validation
+// @Accept json
+// @Tags User
+// @Produce json
+// @Param key formData string true "Key associated with the OTP validation"
+// @Param otp formData string true "OTP to be validated"
+// @Success 200 {string} string "User signup successful"
+// @Failure 401 {string} string "Unauthorized: Invalid key or OTP"
+// @Router /user/signup/otpvalidation [post]
 func (uh *UserHandler) SignupOtpValidation(c *gin.Context) {
 	key := c.PostForm("key")
 	otp := c.PostForm("otp")
@@ -85,7 +109,7 @@ func (uh *UserHandler) LoginWithPassword(c *gin.Context) {
 // @Summary Get a list of products
 // @Description Retrieve a list of products with pagination
 // @ID getProducts
-// @Tags User
+// @Tags User Products
 // @Produce json
 // @Param page query string false "Page number for pagination (default: 1)"
 // @Param limit query string false "Limit the number of products per page (default: 10)"
@@ -138,7 +162,7 @@ func (po *UserHandler) Products(c *gin.Context) {
 // @Summary Get details of a specific product
 // @Description Retrieve details of a product based on the provided product ID
 // @ID getProductDetails
-// @Tags User
+// @Tags User Products
 // @Produce json
 // @Param productid path string true "Product ID to get details for"
 // @Success 200 {string} string "products: entity.Product, product details: entity.ProductDetails"
@@ -164,7 +188,7 @@ func (pd *UserHandler) ProductDetails(c *gin.Context) {
 // @Summary Add a product to the user's cart
 // @Description Add a product to the user's cart based on the provided product ID and quantity
 // @ID addToCart
-// @Tags User
+// @Tags User Products
 // @Accept multipart/form-data
 // @Produce json
 // @Param productid formData string true "Product ID to add to the cart"
@@ -215,7 +239,7 @@ func (ac *UserHandler) AddToCart(c *gin.Context) {
 // @Summary Remove a product from the user's cart
 // @Description Remove a product from the user's cart based on the provided cart item ID
 // @ID removeFromCart
-// @Tags User
+// @Tags User Products
 // @Produce json
 // @Param id path string true "Cart item ID to remove from the cart"
 // @Success 200 {string} string "message: Product removed from cart"
@@ -245,7 +269,7 @@ func (rc *UserHandler) RemoveFromCart(c *gin.Context) {
 // @Summary Get the user's cart
 // @Description Retrieve the user's cart based on the provided user ID
 // @ID getCart
-// @Tags User
+// @Tags User Products
 // @Produce json
 // @Success 200 {string} string "usercart: entity.Cart"
 // @Failure 400 {string} string "error: userId not found in the context"
@@ -264,18 +288,29 @@ func (cu *UserHandler) Cart(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"usercart": usercartresponse})
 }
 
+// AddToWishList handles the endpoint to add a product to the user's wishlist.
+// @Summary Add a product to the wishlist
+// @Description Adds the specified product to the user's wishlist.
+// @ID addToWishList
+// @Accept multipart/form-data
+// @Tags User Products
+// @Produce json
+// @Param productid formData int true "Product ID to add to wishlist"
+// @Success 200 {string} string "product added to wishlist"
+// @Failure 400 {string} string "Bad Request: string conc failed"
+// @Failure 400 {string} string "Bad Request: error message"
+// @Failure 500 {string} string "Internal Server Error: failed to retrieve wishlist items"
+// @Router /user/wishlist [post]
 func (cu *UserHandler) AddToWishList(c *gin.Context) {
 	userID, _ := c.Get("userId")
 	userid := userID.(int)
-	strproduct := c.Param("category")
-	product, err := strconv.Atoi(strproduct)
-	strId := c.Param("productid")
+	strId := c.PostForm("productid")
 	id, err := strconv.Atoi(strId)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "string conc failed"})
 		return
 	}
-	err1 := cu.CartUSeCase.ExecuteAddWishlist(product, id, userid)
+	err1 := cu.CartUSeCase.ExecuteAddWishlist(id, userid)
 	if err1 != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err1.Error()})
 		return
@@ -288,25 +323,46 @@ func (cu *UserHandler) AddToWishList(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "product added to wishlist", "wishlist": wishlistItems})
 }
 
+// RemoveFromWishlist handles the endpoint to remove a product from the user's wishlist.
+// @Summary Remove a product from the wishlist
+// @Description Removes the specified product from the user's wishlist.
+// @ID removeFromWishlist
+// @Accept multipart/form-data
+// @Tags User Products
+// @Produce json
+// @Param id path int true "Product ID to remove from wishlist"
+// @Success 200 {object} string "message": "successfully removed from wishlist"
+// @Failure 400 {object} string "error": "Bad Request: error message"
+// @Failure 500 {object} string "error": "Internal Server Error: failed to remove from wishlist"
+// @Router /user/wishlist/{id} [delete]
 func (cu *UserHandler) RemoveFromWishlist(c *gin.Context) {
 	userID, _ := c.Get("userId")
 	userid := userID.(int)
-	strproduct := c.Param("product")
-	product, err := strconv.Atoi(strproduct)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "strng conversion failed"})
-		return
-	}
 	ID := c.Param("id")
 	id, err := strconv.Atoi(ID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
-	err1 := cu.CartUSeCase.ExecuteRemoveFromWishList(product, id, userid)
+	err1 := cu.CartUSeCase.ExecuteRemoveFromWishList(id, userid)
 	if err1 != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err1.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "succesfully removed from wishlist"})
 }
+
+// ViewWishlist handles the endpoint to view the user's wishlist.
+// @Summary View user's wishlist
+// @Description Retrieves and returns the products in the user's wishlist.
+// @ID viewWishlist
+// @Tags User Products
+// @Produce json
+// @Success 200 {string} string "wishlist retrieved successfully"
+// @Failure 400 {string} string "Bad Request: error message"
+// @Failure 500 {string} string "Internal Server Error: failed to retrieve wishlist"
+// @Router /user/wishlist [get]
 func (cu *UserHandler) ViewWishlist(c *gin.Context) {
 	userID, _ := c.Get("userId")
 	userid := userID.(int)
@@ -320,6 +376,7 @@ func (cu *UserHandler) ViewWishlist(c *gin.Context) {
 // Logout godoc
 // @Summary Logs out the user
 // @Description Deletes the authentication token cookie to log the user out
+// @Tags User 
 // @Produce json
 // @Success 200 {string} string "user logged out successfully"
 // @Failure 400 {string} string "cookie delete failed"
@@ -338,7 +395,7 @@ func (cu *UserHandler) Logout(c *gin.Context) {
 // @Summary Adds a new address for the user
 // @Description Adds a new address associated with the authenticated user
 // @Produce json
-// @Tags User
+// @Tags User Address
 // @Param address body entity.UserAddress true "Address information to be added"
 // @Success 200 {string} string "address added successfully"
 // @Failure 400 {string} string "Bad Request"
@@ -413,6 +470,17 @@ func (eu *UserHandler) EditProfile(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "user edited succesfully", "updateduser": updatedUser})
 }
 
+// ChangePassword godoc
+// @Summary Request OTP for changing user password
+// @Description Initiates the process of changing the user password by sending an OTP.
+// @ID change-password
+// @Accept json
+// @Tags User 
+// @Produce json
+// @Security ApiKeyAuth
+// @Success 200 {string} string "OTP sent successfully for password change"
+// @Failure 400 {string} string "Bad request: Unable to initiate password change"
+// @Router /user/change-password [post]
 func (cp *UserHandler) ChangePassword(c *gin.Context) {
 	userID, _ := c.Get("userId")
 	userid := userID.(int)
@@ -424,6 +492,19 @@ func (cp *UserHandler) ChangePassword(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "otp send succesfully", "key": key})
 }
 
+// OtpValidationPassword godoc
+// @Summary Validate OTP and change user password
+// @Description Validates the provided OTP and changes the user password.
+// @ID otp-validation-password
+// @Accept multipart/form-data
+// @Produce json
+// @Tags User 
+// @Security ApiKeyAuth
+// @Param password formData string true "New password for the user"
+// @Param otp formData string true "OTP for validation"
+// @Success 200 {string} string "Password changed successfully"
+// @Failure 400 {string} string "Bad request: Unable to change password"
+// @Router /user/change-password/validation [post]
 func (cp *UserHandler) OtpValidationPassword(c *gin.Context) {
 	userID, _ := c.Get("userId")
 	userid := userID.(int)
@@ -441,6 +522,7 @@ func (cp *UserHandler) OtpValidationPassword(c *gin.Context) {
 //		@Summary Get the items in the user's cart
 //		@Description Retrieve the items in the user's cart based on the provided user ID
 //		@Produce json
+// @Tags User Products
 //		@Param userId path int true "User ID"
 //		@Success 200 {string} string "cartlist: []entity.CartItem"
 //		@Failure 400 {string} string "error: Bad Request"
@@ -462,7 +544,7 @@ func (cl *UserHandler) CartItems(c *gin.Context) {
 //		@Summary Edit the user's address
 //		@Description Edit the user's address of a specific type (e.g., home, work)
 //		@Produce json
-//	 @Tags User
+//	 @Tags User Address
 //		@Param type path string true "Address type (e.g., home, work)"
 //		@Param useraddress body entity.UserAddress true "Updated address information"
 //		@Success 200 {string} string "success: address edited successfully"
@@ -488,6 +570,7 @@ func (ea *UserHandler) EditAddress(c *gin.Context) {
 // @Summary Delete user address
 // @Description Deletes a specific type of address for the authenticated user.
 // @ID delete-user-address
+// @Tags User Address
 // @Produce json
 // @Param type path string true "Type of address to be deleted (e.g., 'home', 'work')"
 // @Success 200 {object} string "success": "address Deleted successfully" "Successful response"
@@ -509,6 +592,7 @@ func (da *UserHandler) DeleteAddress(c *gin.Context) {
 // @Summary Search products
 // @Description Searches for products based on the provided search query.
 // @ID search-products
+// @Tags User Sort
 // @Produce json
 // @Param page query int false "Page number for pagination (default is 1)"
 // @Param limit query int false "Number of items per page (default is 5)"
@@ -553,6 +637,7 @@ func (or *UserHandler) SearchProduct(c *gin.Context) {
 // @Summary Sort products by category
 // @Description Retrieves a list of products sorted by category based on the provided category ID.
 // @ID sort-products-by-category
+// @Tags User Sort
 // @Produce json
 // @Param page query int false "Page number for pagination (default is 1)"
 // @Param limit query int false "Number of items per page (default is 5)"
@@ -588,6 +673,7 @@ func (sc *UserHandler) SortByCategory(c *gin.Context) {
 // @Summary Sort products by filter
 // @Description Retrieves a list of products based on the provided filter criteria.
 // @ID sort-products-by-filter
+// @Tags User Sort
 // @Produce json
 // @Param minprize query int false "Minimum prize for product filtering"
 // @Param maxprize query int false "Maximum prize for product filtering"
@@ -617,6 +703,7 @@ func (sc *UserHandler) SortByFilter(c *gin.Context) {
 // @Description Applies a coupon to the authenticated user's cart based on the provided coupon code.
 // @ID apply-coupon
 // @Accept multipart/form-data
+// @Tags User Coupon
 // @Produce json
 // @Param code formData string true "Coupon code to be applied"
 // @Success 200 {string} string "Total offer prize and Coupon applied successfully"
@@ -635,11 +722,11 @@ func (sc *UserHandler) ApplyCoupon(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"offer prize": totaloffer, "offer": "applied succesfully"})
 }
 
-
 // AvailableCoupons godoc
 // @Summary Retrieve available coupons
 // @Description Retrieves a list of available coupons.
 // @ID get-available-coupons
+// @Tags User Coupon
 // @Produce json
 // @Success 200 {string} string "List of available coupons"
 // @Failure 400 {string} string "Bad request"

@@ -99,9 +99,9 @@ func (cr *CartRepository) AddProductToWishlist(product *entity.WishList) error {
 	return nil
 }
 
-func (cr *CartRepository) GetProductsFromWishlist(category int, id, userid int) (bool, error) {
+func (cr *CartRepository) GetProductsFromWishlist( id, userid int) (bool, error) {
 	var product entity.WishList
-	result := cr.db.Where(&entity.WishList{UserId: userid, Category: category, ProductId: id}).First(&product)
+	result := cr.db.Where(&entity.WishList{UserId: userid, ProductId: id}).First(&product)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return false, nil
@@ -123,10 +123,9 @@ func (cr *CartRepository) GetWishlist(userid int) (*[]entity.WishList, error) {
 	return &WishList, nil
 }
 
-func (cr *CartRepository) RemoveFromWishlist(category int, id, userid int) error {
+func (cr *CartRepository) RemoveFromWishlist( id, userid int) error {
 	product := &entity.WishList{
 		UserId:    userid,
-		Category:  category,
 		ProductId: id,
 	}
 	return cr.db.Where("product_id=?", id).Delete(&product).Error

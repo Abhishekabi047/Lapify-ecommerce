@@ -26,6 +26,7 @@ func NewAdminHandler(AdminUsecase *usecase.AdminUseCase, ProductUsecase *product
 // @Summary Admin Login with Password
 // @Description Authenticate admin using email and password and generate an authentication token.
 // @ID admin-login
+// @Tags Admin 
 // @Accept json
 // @Produce json
 // @Param			admin	body		entity.AdminLogin	true	"Admin Data"
@@ -60,6 +61,7 @@ func (uh *AdminHandler) AdminLoginWithPassword(c *gin.Context) {
 // @Description Get a paginated list of users.
 // @ID list-users
 // @Accept json
+// @Tags Admin User Management
 // @Produce json
 // @Param page query int false "Page number (default is 1)"
 // @Param limit query int false "Number of users per page (default is 5)"
@@ -91,6 +93,7 @@ func (ul *AdminHandler) UsersList(c *gin.Context) {
 // @Description Toggle the permission of a user by providing the user's ID.
 // @ID toggle-user-permission
 // @Accept json
+// @Tags Admin User Management
 // @Produce json
 // @Param id path int true "User ID" minimum(1) format(int32)
 // @Success 200 {string} string "success: User permission toggled successfully"
@@ -119,6 +122,7 @@ func (tp *AdminHandler) TogglePermission(c *gin.Context) {
 // @Description Create a new category by providing the category details.
 // @ID create-category
 // @Accept json
+// @Tags Admin Category Management
 // @Produce json
 // @Param category body entity.Category true "Category details"
 // @Success 200 {object} string "success": "Category added successfully" entity.Category
@@ -157,7 +161,7 @@ func (ct *AdminHandler) CreateCategory(c *gin.Context) {
 // @Summary Edit a category
 // @Description Edit a category based on the provided JSON data
 // @ID editCategory
-// @Tags admin
+// @Tags Admin Category Management
 // @Accept json
 // @Produce json
 // @Param id path int true "Category ID" Format(int64)
@@ -193,7 +197,7 @@ func (et *AdminHandler) EditCategory(c *gin.Context) {
 // @Summary Delete a category
 // @Description Delete an existing category based on the provided ID
 // @ID deleteCategory
-// @Tags Admin
+// @Tags Admin Category Management
 // @Accept json
 // @Produce json
 // @Param id path int true "Category ID" Format(int64)
@@ -217,11 +221,29 @@ func (et *AdminHandler) DeleteCategory(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": "category deleted successfully"})
 }
 
+// @Summary Get all categories
+// @Description Retrieve a list of all categories
+// @Tags Admin Category Management
+// @Accept json
+// @Produce json
+// @Success 200 {object} entity.Category "List of categories"
+// @Failure 400 {object} entity.ErrorResponse "Bad Request"
+// @Router /admin/categories [get]
+func(et *AdminHandler) AllCategory(c *gin.Context) {
+	categorylist,err:=et.ProductUseCase.ExecuteGetAllCategory()
+	if err!= nil{
+		c.JSON(http.StatusBadRequest,gin.H{"error":err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK,gin.H{"Categories":categorylist})
+}
+
+
 // CreateProduct godoc
 // @Summary Create a new product
 // @Description Create a new product with details, including image upload
 // @ID createProduct
-// @Tags Admin
+// @Tags Admin Product Management
 // @Accept multipart/form-data
 // @Produce json
 // @Param name formData string true "Product Name"
@@ -315,7 +337,7 @@ func (cp *AdminHandler) CreateProduct(c *gin.Context) {
 // @Summary Edit a product
 // @Description Edit an existing product based on the provided JSON data
 // @ID editProduct
-// @Tags Admin
+// @Tags Admin Product Management
 // @Accept json
 // @Produce json
 // @Param id path int true "Product ID" Format(int64)
@@ -353,8 +375,8 @@ func (ep *AdminHandler) EditProduct(c *gin.Context) {
 // DeleteProduct godoc
 // @Summary Delete a product
 // @Description Delete an existing product based on the provided ID
-// @ID deleteProduct
-// @Tags Admin
+// @Tags Admin Product Management
+// @Tags Admin Product Management
 // @Accept json
 // @Produce json
 // @Param id path int true "Product ID" Format(int64)
@@ -379,6 +401,7 @@ func (dp *AdminHandler) DeleteProduct(c *gin.Context) {
 // @Summary Get a list of products for admin
 // @Description Retrieve a list of products for the admin dashboard.
 // @ID get-admin-products
+// @Tags Admin Product Management
 // @Produce json
 // @Success 200 {array} models.ProductWithQuantityResponse
 // @Failure 401 {string} string "Unauthorized"
@@ -427,10 +450,10 @@ func (ad *AdminHandler) Home(c *gin.Context) {
 // @Summary Add a new coupon
 // @Description Add a new coupon with the provided JSON data
 // @ID addCoupon
-// @Tags Admin
+// @Tags Admin Coupon Management
 // @Accept json
 // @Produce json
-// @Param coupon body string true "JSON-encoded Coupon object to be added"
+// @Param category body entity.Coupon true "Coupon details"
 // @Success 200 {string} string "Coupon added successfully" "coupon": entity.coupon
 // @Failure 400 {string} string "JSON binding failed"
 // @Failure 400 {string} string "Coupon code already exists"
@@ -467,7 +490,7 @@ func (ad *AdminHandler) AddCoupon(c *gin.Context) {
 // @Summary Get all available coupons
 // @Description Get a list of all available coupons
 // @ID allCoupons
-// @Tags Admin
+// @Tags Admin Coupon Management
 // @Produce json
 // @Success 200 {string} string "List of available coupons" entity.coupon
 // @Failure 400 {string} string "Failed to retrieve available coupons"
@@ -485,7 +508,7 @@ func (ad *AdminHandler) AllCoupons(c *gin.Context) {
 // @Summary Delete a coupon
 // @Description Delete an existing coupon based on the provided code
 // @ID deleteCoupon
-// @Tags Admin
+// @Tags Admin Coupon Management
 // @Accept json
 // @Produce json
 // @Param code formData string true "Coupon code to be deleted"
@@ -506,7 +529,7 @@ func (ad *AdminHandler) DeleteCoupon(c *gin.Context) {
 // @Summary Add an offer to a product
 // @Description Add an offer to a product based on the provided product ID and offer
 // @ID addProductOffer
-// @Tags Admin
+// @Tags Admin Offer Management
 // @Accept multipart/form-data
 // @Produce json
 // @Param productid formData string true "Product ID to add the offer to"
@@ -541,7 +564,7 @@ func (ad *AdminHandler) AddProductOffer(c *gin.Context) {
 // @Summary Add an offer to a category
 // @Description Add an offer to a category based on the provided category ID and offer
 // @ID addCategoryOffer
-// @Tags Admin
+// @Tags Admin Offer Management
 // @Accept multipart/form-data
 // @Produce json
 // @Param categoryid formData string true "form" "Category ID to add the offer to"
@@ -575,7 +598,7 @@ func (ad *AdminHandler) AddCategoryOffer(c *gin.Context) {
 // @Summary Get a list of stockless products
 // @Description Retrieve a list of products with zero stock
 // @ID stocklessProducts
-// @Tags Admin
+// @Tags Admin Product Management
 // @Produce json
 // @Success 200 {string} string "List of stockless products: []entity.Product"
 // @Failure 400 {string} string "error: Failed to retrieve stockless products"
@@ -593,7 +616,7 @@ func (au *AdminHandler) StocklessProducts(c *gin.Context) {
 // @Summary Search users based on criteria
 // @Description Retrieve a list of users based on search criteria, paginated with optional limit
 // @ID searchUsers
-// @Tags Admin
+// @Tags Admin User Management
 // @Produce json
 // @Param page query string false "Page number for pagination (default: 1)"
 // @Param limit query string false "Limit the number of users per page (default: 5)"
@@ -623,4 +646,53 @@ func (or *AdminHandler) SearchUsers(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"userlist": userlist})
+}
+
+// @Summary Add stock to a product
+// @Description Add stock to a product based on the provided ID and quantity
+// @Tags Admin Product Management
+// @Accept json
+// @Produce json
+// @Param id path int true "Product ID"
+// @Param request body entity.Inventory true "Stock details to be added"
+// @Success 200 {object} entity.Inventory "Updated inventory"
+// @Failure 400 {string} string "Bad Request"
+// @Router /admin/products/stocks/{id} [put]
+func (or *AdminHandler) AddStock(c *gin.Context){
+	var inventory *entity.Inventory
+	strid:=c.Param("id")
+	id,err1:=strconv.Atoi(strid)
+	if err1 != nil{
+		c.JSON(http.StatusBadRequest,gin.H{"error":"str conv failed"})
+		return
+	}
+	if err := c.ShouldBindJSON(&inventory);err != nil{
+		c.JSON(http.StatusBadRequest,gin.H{"error":err.Error()})
+		return
+	}
+	quantity:=int(inventory.Quantity)
+	inventory,err:=or.ProductUseCase.ExecuteAddStock(id,quantity)
+	if err != nil{
+		c.JSON(http.StatusBadRequest,gin.H{"error":err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK,gin.H{"Updated result :":inventory})
+}
+
+// Logout godoc
+// @Summary Logs out the Admin
+// @Description Deletes the authentication token cookie to log the admin out
+// @Tags Admin 
+// @Produce json
+// @Success 200 {string} string "Admin logged out successfully"
+// @Failure 400 {string} string "cookie delete failed"
+// @Router /admin/logout [post]
+func (cu *AdminHandler) Logout(c *gin.Context) {
+	err := middleware.DeleteToken(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"errror": "cookie delete failed"})
+		return
+	} else {
+		c.JSON(http.StatusOK, gin.H{"message": "Admin logged out succesfully"})
+	}
 }

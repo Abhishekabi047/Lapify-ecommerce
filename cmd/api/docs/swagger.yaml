@@ -18,10 +18,44 @@ definitions:
     - description
     - name
     type: object
+  entity.Coupon:
+    properties:
+      amount:
+        type: integer
+      code:
+        maxLength: 8
+        type: string
+      id:
+        type: integer
+      type:
+        type: string
+      usage_limit:
+        type: integer
+      usedcount:
+        type: integer
+      valid_until:
+        type: string
+    required:
+    - amount
+    - code
+    - type
+    - usage_limit
+    type: object
   entity.ErrorResponse:
     properties:
       error:
         type: string
+    type: object
+  entity.Inventory:
+    properties:
+      productCategory:
+        type: integer
+      productId:
+        type: integer
+      quantity:
+        type: integer
+    required:
+    - quantity
     type: object
   entity.ListUsersResponse:
     properties:
@@ -101,6 +135,25 @@ definitions:
       size:
         type: string
     type: object
+  models.Signup:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+      password:
+        minLength: 8
+        type: string
+      phone:
+        type: string
+      referalcode:
+        type: string
+    required:
+    - email
+    - name
+    - password
+    - phone
+    type: object
 info:
   contact: {}
   description: API for ecommerce website
@@ -108,6 +161,24 @@ info:
   version: "1.0"
 paths:
   /admin/categories:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a list of all categories
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of categories
+          schema:
+            $ref: '#/definitions/entity.Category'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/entity.ErrorResponse'
+      summary: Get all categories
+      tags:
+      - Admin Category Management
     post:
       consumes:
       - application/json
@@ -132,6 +203,8 @@ paths:
           schema:
             type: string
       summary: Create a new category
+      tags:
+      - Admin Category Management
   /admin/categories/{id}:
     delete:
       consumes:
@@ -158,7 +231,7 @@ paths:
             type: string
       summary: Delete a category
       tags:
-      - Admin
+      - Admin Category Management
     put:
       consumes:
       - application/json
@@ -191,7 +264,7 @@ paths:
             type: string
       summary: Edit a category
       tags:
-      - admin
+      - Admin Category Management
   /admin/category/offer:
     post:
       consumes:
@@ -223,7 +296,7 @@ paths:
             type: string
       summary: Add an offer to a category
       tags:
-      - Admin
+      - Admin Offer Management
   /admin/coupons:
     delete:
       consumes:
@@ -249,7 +322,7 @@ paths:
             type: string
       summary: Delete a coupon
       tags:
-      - Admin
+      - Admin Coupon Management
     get:
       description: Get a list of all available coupons
       operationId: allCoupons
@@ -266,19 +339,19 @@ paths:
             type: string
       summary: Get all available coupons
       tags:
-      - Admin
+      - Admin Coupon Management
     post:
       consumes:
       - application/json
       description: Add a new coupon with the provided JSON data
       operationId: addCoupon
       parameters:
-      - description: JSON-encoded Coupon object to be added
+      - description: Coupon details
         in: body
-        name: coupon
+        name: category
         required: true
         schema:
-          type: string
+          $ref: '#/definitions/entity.Coupon'
       produces:
       - application/json
       responses:
@@ -292,7 +365,7 @@ paths:
             type: string
       summary: Add a new coupon
       tags:
-      - Admin
+      - Admin Coupon Management
   /admin/home:
     get:
       description: Get information about available options and the admin dashboard
@@ -339,6 +412,25 @@ paths:
           schema:
             type: string
       summary: Admin Login with Password
+      tags:
+      - Admin
+  /admin/logout:
+    post:
+      description: Deletes the authentication token cookie to log the admin out
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Admin logged out successfully
+          schema:
+            type: string
+        "400":
+          description: cookie delete failed
+          schema:
+            type: string
+      summary: Logs out the Admin
+      tags:
+      - Admin
   /admin/order/cancel/{orderid}:
     patch:
       description: Cancels an order based on the provided order ID (for admin use).
@@ -361,6 +453,8 @@ paths:
           schema:
             type: string
       summary: Cancel order (Admin)
+      tags:
+      - Admin Orders
   /admin/order/details:
     get:
       description: Retrieves the order details for admin based on pagination parameters.
@@ -386,6 +480,8 @@ paths:
           schema:
             type: string
       summary: Retrieve order details for admin
+      tags:
+      - Admin Orders
   /admin/order/update/{orderid}:
     patch:
       description: Updates the status of an order based on the provided order ID and
@@ -415,6 +511,8 @@ paths:
           schema:
             type: string
       summary: Update order status (Admin)
+      tags:
+      - Admin Orders
   /admin/product/offer:
     post:
       consumes:
@@ -446,7 +544,7 @@ paths:
             type: string
       summary: Add an offer to a product
       tags:
-      - Admin
+      - Admin Offer Management
   /admin/products:
     get:
       description: Retrieve a list of products for the admin dashboard.
@@ -465,6 +563,8 @@ paths:
           schema:
             type: string
       summary: Get a list of products for admin
+      tags:
+      - Admin Product Management
     post:
       consumes:
       - multipart/form-data
@@ -528,13 +628,12 @@ paths:
             type: string
       summary: Create a new product
       tags:
-      - Admin
+      - Admin Product Management
   /admin/products/{id}:
     delete:
       consumes:
       - application/json
       description: Delete an existing product based on the provided ID
-      operationId: deleteProduct
       parameters:
       - description: Product ID
         format: int64
@@ -555,7 +654,8 @@ paths:
             type: string
       summary: Delete a product
       tags:
-      - Admin
+      - Admin Product Management
+      - Admin Product Management
     put:
       consumes:
       - application/json
@@ -587,7 +687,38 @@ paths:
             type: string
       summary: Edit a product
       tags:
-      - Admin
+      - Admin Product Management
+  /admin/products/stocks/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Add stock to a product based on the provided ID and quantity
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Stock details to be added
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/entity.Inventory'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Updated inventory
+          schema:
+            $ref: '#/definitions/entity.Inventory'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: Add stock to a product
+      tags:
+      - Admin Product Management
   /admin/salesreport/date/{start}/{end}:
     get:
       description: Generates a sales report based on the provided start and end dates.
@@ -615,6 +746,8 @@ paths:
           schema:
             type: string
       summary: Generate sales report by date range
+      tags:
+      - Admin Report
   /admin/salesreport/payment/{start}/{end}/{paymentmethod}:
     get:
       description: Generates a sales report based on the provided start and end dates
@@ -648,6 +781,8 @@ paths:
           schema:
             type: string
       summary: Generate sales report by payment method and date range
+      tags:
+      - Admin Report
   /admin/salesreport/period/{period}:
     get:
       description: Generates a sales report based on the provided period.
@@ -670,6 +805,8 @@ paths:
           schema:
             type: string
       summary: Generate sales report by period
+      tags:
+      - Admin Report
   /admin/search/users:
     get:
       description: Retrieve a list of users based on search criteria, paginated with
@@ -702,7 +839,7 @@ paths:
             type: string
       summary: Search users based on criteria
       tags:
-      - Admin
+      - Admin User Management
   /admin/stockless/products:
     get:
       description: Retrieve a list of products with zero stock
@@ -720,7 +857,7 @@ paths:
             type: string
       summary: Get a list of stockless products
       tags:
-      - Admin
+      - Admin Product Management
   /admin/users:
     get:
       consumes:
@@ -748,6 +885,8 @@ paths:
           schema:
             $ref: '#/definitions/entity.ErrorResponse'
       summary: List Users
+      tags:
+      - Admin User Management
   /admin/users/toggle-permission/{id}:
     put:
       consumes:
@@ -778,6 +917,8 @@ paths:
           schema:
             type: string
       summary: Toggle User Permission
+      tags:
+      - Admin User Management
   /logout:
     post:
       description: Deletes the authentication token cookie to log the user out
@@ -793,6 +934,8 @@ paths:
           schema:
             type: string
       summary: Logs out the user
+      tags:
+      - User
   /order/payment/verify:
     post:
       consumes:
@@ -828,6 +971,8 @@ paths:
           schema:
             type: string
       summary: Verify payment for Razorpay
+      tags:
+      - User Orders
   /user/address:
     post:
       description: Adds a new address associated with the authenticated user
@@ -851,7 +996,7 @@ paths:
             type: string
       summary: Adds a new address for the user
       tags:
-      - User
+      - User Address
   /user/address/{type}:
     delete:
       description: Deletes a specific type of address for the authenticated user.
@@ -874,6 +1019,8 @@ paths:
           schema:
             type: string
       summary: Delete user address
+      tags:
+      - User Address
     patch:
       description: Edit the user's address of a specific type (e.g., home, work)
       parameters:
@@ -901,7 +1048,7 @@ paths:
             type: string
       summary: Edit the user's address
       tags:
-      - User
+      - User Address
   /user/cart:
     get:
       description: Retrieve the user's cart based on the provided user ID
@@ -919,7 +1066,7 @@ paths:
             type: string
       summary: Get the user's cart
       tags:
-      - User
+      - User Products
     post:
       consumes:
       - multipart/form-data
@@ -955,7 +1102,7 @@ paths:
             type: string
       summary: Add a product to the user's cart
       tags:
-      - User
+      - User Products
   /user/cart/{id}:
     delete:
       description: Remove a product from the user's cart based on the provided cart
@@ -980,7 +1127,7 @@ paths:
             type: string
       summary: Remove a product from the user's cart
       tags:
-      - User
+      - User Products
   /user/cart/coupon:
     post:
       consumes:
@@ -1006,6 +1153,8 @@ paths:
           schema:
             type: string
       summary: Apply coupon to user's cart
+      tags:
+      - User Coupon
   /user/cartlist:
     get:
       description: Retrieve the items in the user's cart based on the provided user
@@ -1028,6 +1177,64 @@ paths:
           schema:
             type: string
       summary: Get the items in the user's cart
+      tags:
+      - User Products
+  /user/change-password:
+    post:
+      consumes:
+      - application/json
+      description: Initiates the process of changing the user password by sending
+        an OTP.
+      operationId: change-password
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OTP sent successfully for password change
+          schema:
+            type: string
+        "400":
+          description: 'Bad request: Unable to initiate password change'
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Request OTP for changing user password
+      tags:
+      - User
+  /user/change-password/validation:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Validates the provided OTP and changes the user password.
+      operationId: otp-validation-password
+      parameters:
+      - description: New password for the user
+        in: formData
+        name: password
+        required: true
+        type: string
+      - description: OTP for validation
+        in: formData
+        name: otp
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Password changed successfully
+          schema:
+            type: string
+        "400":
+          description: 'Bad request: Unable to change password'
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Validate OTP and change user password
+      tags:
+      - User
   /user/coupons:
     get:
       description: Retrieves a list of available coupons.
@@ -1044,6 +1251,8 @@ paths:
           schema:
             type: string
       summary: Retrieve available coupons
+      tags:
+      - User Coupon
   /user/details:
     get:
       description: Retrieve user details and associated address based on the provided
@@ -1116,6 +1325,8 @@ paths:
           schema:
             type: string
       summary: Cancel an order
+      tags:
+      - User Orders
   /user/order/history:
     get:
       description: Retrieves the order history for the authenticated user based on
@@ -1142,6 +1353,8 @@ paths:
           schema:
             type: string
       summary: Retrieve order history for the authenticated user
+      tags:
+      - User Orders
   /user/order/invoice:
     get:
       description: Generates and downloads the invoice for a specific order.
@@ -1164,6 +1377,8 @@ paths:
           schema:
             type: string
       summary: Print invoice for an order
+      tags:
+      - User Orders
   /user/order/place:
     post:
       consumes:
@@ -1194,6 +1409,32 @@ paths:
           schema:
             type: string
       summary: Place an order
+      tags:
+      - User Orders
+  /user/orderstatus/{orderid}:
+    get:
+      description: Retrieves the status of an order based on the provided order ID.
+      operationId: get-order-status
+      parameters:
+      - description: Order ID for which the status should be retrieved
+        in: path
+        name: orderid
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Order status retrieved successfully
+          schema:
+            type: string
+        "400":
+          description: Bad request
+          schema:
+            type: string
+      summary: Get the status of an order
+      tags:
+      - User Orders
   /user/products:
     get:
       description: Retrieve a list of products with pagination
@@ -1220,7 +1461,7 @@ paths:
             type: string
       summary: Get a list of products
       tags:
-      - User
+      - User Products
   /user/products/details/{productid}:
     get:
       description: Retrieve details of a product based on the provided product ID
@@ -1244,7 +1485,7 @@ paths:
             type: string
       summary: Get details of a specific product
       tags:
-      - User
+      - User Products
   /user/products/filter:
     get:
       description: Retrieves a list of products based on the provided filter criteria.
@@ -1278,6 +1519,8 @@ paths:
           schema:
             type: string
       summary: Sort products by filter
+      tags:
+      - User Sort
   /user/products/search:
     get:
       description: Searches for products based on the provided search query.
@@ -1308,6 +1551,8 @@ paths:
           schema:
             type: string
       summary: Search products
+      tags:
+      - User Sort
   /user/products/sort:
     get:
       description: Retrieves a list of products sorted by category based on the provided
@@ -1343,6 +1588,8 @@ paths:
           schema:
             type: string
       summary: Sort products by category
+      tags:
+      - User Sort
   /user/profile:
     patch:
       description: Edit user profile based on the provided user ID and input data
@@ -1371,6 +1618,149 @@ paths:
       summary: Edit the profile for the authenticated user
       tags:
       - User
+  /user/signup:
+    post:
+      consumes:
+      - application/json
+      description: Registers a new user using OTP verification.
+      operationId: signup-with-otp
+      parameters:
+      - description: User details for signup with OTP
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/models.Signup'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OTP sent successfully to the provided phone number
+          schema:
+            type: string
+        "400":
+          description: 'Bad request: Invalid request'
+          schema:
+            type: string
+        "500":
+          description: 'Internal Server Error: Something went wrong'
+          schema:
+            type: string
+      summary: Sign up a user with OTP
+      tags:
+      - User
+  /user/signup/otpvalidation:
+    post:
+      consumes:
+      - application/json
+      description: Validates the provided OTP for user signup.
+      operationId: signup-otp-validation
+      parameters:
+      - description: Key associated with the OTP validation
+        in: formData
+        name: key
+        required: true
+        type: string
+      - description: OTP to be validated
+        in: formData
+        name: otp
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User signup successful
+          schema:
+            type: string
+        "401":
+          description: 'Unauthorized: Invalid key or OTP'
+          schema:
+            type: string
+      summary: Validate OTP for user signup
+      tags:
+      - User
+  /user/wishlist:
+    get:
+      description: Retrieves and returns the products in the user's wishlist.
+      operationId: viewWishlist
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: wishlist retrieved successfully
+          schema:
+            type: string
+        "400":
+          description: 'Bad Request: error message'
+          schema:
+            type: string
+        "500":
+          description: 'Internal Server Error: failed to retrieve wishlist'
+          schema:
+            type: string
+      summary: View user's wishlist
+      tags:
+      - User Products
+    post:
+      consumes:
+      - multipart/form-data
+      description: Adds the specified product to the user's wishlist.
+      operationId: addToWishList
+      parameters:
+      - description: Product ID to add to wishlist
+        in: formData
+        name: productid
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: product added to wishlist
+          schema:
+            type: string
+        "400":
+          description: 'Bad Request: error message'
+          schema:
+            type: string
+        "500":
+          description: 'Internal Server Error: failed to retrieve wishlist items'
+          schema:
+            type: string
+      summary: Add a product to the wishlist
+      tags:
+      - User Products
+  /user/wishlist/{id}:
+    delete:
+      consumes:
+      - multipart/form-data
+      description: Removes the specified product from the user's wishlist.
+      operationId: removeFromWishlist
+      parameters:
+      - description: Product ID to remove from wishlist
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message": "successfully removed from wishlist'
+          schema:
+            type: string
+        "400":
+          description: 'error": "Bad Request: error message'
+          schema:
+            type: string
+        "500":
+          description: 'error": "Internal Server Error: failed to remove from wishlist'
+          schema:
+            type: string
+      summary: Remove a product from the wishlist
+      tags:
+      - User Products
 securityDefinitions:
   JWT:
     in: cookie

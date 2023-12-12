@@ -234,6 +234,14 @@ func (pu *ProductUseCase) ExecuteCreateCategory(category entity.Category) (int, 
 	}
 }
 
+func (pt *ProductUseCase) ExecuteGetAllCategory() (*[]entity.Category,error){
+	category,err:=pt.productRepo.AllCategory()
+	if err != nil{
+		return nil,err
+	}
+	return category,nil
+}
+
 func (pt *ProductUseCase) ExecuteEditCategory(category entity.Category, id int) error {
 	validate := validator.New()
 	if err := validate.Struct(category); err != nil {
@@ -518,4 +526,19 @@ func(au *ProductUseCase) ExecuteDeleteProductAdd(id int) error{
 		return err
 	}
 	return nil
+}
+
+func(au *ProductUseCase) ExecuteAddStock(productId,stock int) (*entity.Inventory,error){
+
+	product,err:=au.productRepo.GetInventoryByID(productId)
+	if err != nil{
+		return nil,err
+	}
+	product.Quantity= product.Quantity + stock
+	err1:= au.productRepo.UpdateInventory(product)
+	if err1 != nil{
+		return nil,errors.New("error updating inventory")
+	}
+	return product,nil
+
 }
