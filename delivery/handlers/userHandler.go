@@ -56,7 +56,7 @@ func (uh *UserHandler) SignupWithOtp(c *gin.Context) {
 // @Summary Validate OTP for user signup
 // @Description Validates the provided OTP for user signup.
 // @ID signup-otp-validation
-// @Accept json
+// @Accept multipart/form-data
 // @Tags User
 // @Produce json
 // @Param key formData string true "Key associated with the OTP validation"

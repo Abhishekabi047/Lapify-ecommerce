@@ -31,21 +31,21 @@ func NewOrderHandler(OrderUseCase *usecase.OrderUseCase, Razorpay config.Razopay
 // @Summary Place an order
 // @Description Places an order for the authenticated user based on the selected payment method.
 // @ID place-order
-// @Accept multipart/form-data
+// @Accept json
 // @Tags User Orders
 // @Produce json
-// @Param addressid formData int true "Address ID for the order"
-// @Param payment formData string true "Payment method ('cod', 'razorpay', 'wallet')"
+// @Param addressid path int true "Address ID for the order"
+// @Param payment path string true "Payment method ('cod', 'razorpay', 'wallet')"
 // @Success 200 {string} string "Invoice details" "Successful response for COD payment"
 // @Success 200 {string} string "Complete your Razorpay payment through. Razorpay ID: {razorId}, Order ID: {orderid}, User ID: {userid}" "Successful response for Razorpay payment"
 // @Success 200 {string} string "Invoice details" "Successful response for Wallet payment"
 // @Failure 400 {string} string "Bad request"
-// @Router /user/order/place [post]
+// @Router /user/order/place/{addressid}/{payment} [post]
 func (oh *OrderHandler) PlaceOrder(c *gin.Context) {
 	userID, _ := c.Get("userId")
 	userid := userID.(int)
-	straddress := c.PostForm("addressid")
-	PaymentMethod := c.PostForm("payment")
+	straddress := c.Param("addressid")
+	PaymentMethod := c.Param("payment")
 	addressId, err := strconv.Atoi(straddress)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "strng conversion failed"})
@@ -65,7 +65,11 @@ func (oh *OrderHandler) PlaceOrder(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err1.Error()})
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{"message": "complete your razor pay through ", "razorId": razorId, "orderid": orderId, "userid": userid})
+		c.HTML(http.StatusOK, "razor.html", gin.H{
+			"message": "make payment",
+			"razorId": razorId,
+			"orderid": orderId})
+		// c.JSON(http.StatusOK, gin.H{"message": "complete your razor pay through ", "razorId": razorId, "orderid": orderId, "userid": userid})
 	} else if PaymentMethod == "wallet" {
 		invoice, err2 := oh.OrderUseCase.ExecutePaymentWallet(userid, addressId)
 		if err2 != nil {

@@ -1379,21 +1379,21 @@ paths:
       summary: Print invoice for an order
       tags:
       - User Orders
-  /user/order/place:
+  /user/order/place/{addressid}/{payment}:
     post:
       consumes:
-      - multipart/form-data
+      - application/json
       description: Places an order for the authenticated user based on the selected
         payment method.
       operationId: place-order
       parameters:
       - description: Address ID for the order
-        in: formData
+        in: path
         name: addressid
         required: true
         type: integer
       - description: Payment method ('cod', 'razorpay', 'wallet')
-        in: formData
+        in: path
         name: payment
         required: true
         type: string
@@ -1652,7 +1652,7 @@ paths:
   /user/signup/otpvalidation:
     post:
       consumes:
-      - application/json
+      - multipart/form-data
       description: Validates the provided OTP for user signup.
       operationId: signup-otp-validation
       parameters:

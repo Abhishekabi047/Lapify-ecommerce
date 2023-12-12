@@ -228,7 +228,7 @@ func (rp *OrderUseCase) ExecuteRazorPay(userId, address int) (string, int, error
 	if err2 != nil {
 		return "", 0, errors.New("address not found")
 	}
-	// client := razorpay.NewClient("rzp_test_leWrFNIomWqk5W", "R59k58EhgS48BaauF22urj5A")
+	
 	client := razorpay.NewClient(rp.razopay.RazopayKey, rp.razopay.RazopaySecret)
 
 	data := map[string]interface{}{

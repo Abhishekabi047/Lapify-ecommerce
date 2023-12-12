@@ -1809,11 +1809,11 @@ const docTemplate = `{
                 }
             }
         },
-        "/user/order/place": {
+        "/user/order/place/{addressid}/{payment}": {
             "post": {
                 "description": "Places an order for the authenticated user based on the selected payment method.",
                 "consumes": [
-                    "multipart/form-data"
+                    "application/json"
                 ],
                 "produces": [
                     "application/json"
@@ -1828,14 +1828,14 @@ const docTemplate = `{
                         "type": "integer",
                         "description": "Address ID for the order",
                         "name": "addressid",
-                        "in": "formData",
+                        "in": "path",
                         "required": true
                     },
                     {
                         "type": "string",
                         "description": "Payment method ('cod', 'razorpay', 'wallet')",
                         "name": "payment",
-                        "in": "formData",
+                        "in": "path",
                         "required": true
                     }
                 ],
@@ -2217,7 +2217,7 @@ const docTemplate = `{
             "post": {
                 "description": "Validates the provided OTP for user signup.",
                 "consumes": [
-                    "application/json"
+                    "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"

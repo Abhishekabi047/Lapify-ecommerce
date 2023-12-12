@@ -8,7 +8,8 @@ import (
 )
 
 func OrderRouter(r *gin.Engine, orderHandler *handlers.OrderHandler) *gin.Engine {
-	r.POST("/user/order/place", m.UserRetreiveCookie, orderHandler.PlaceOrder)
+	r.POST("/user/order/place/:addressid/:payment", m.UserRetreiveCookie, orderHandler.PlaceOrder)
+	r.GET("/user/order/place/:addressid/:payment", m.UserRetreiveCookie, orderHandler.PlaceOrder)
 	r.POST("/user/payment/verify", m.UserRetreiveCookie, orderHandler.PaymentVerification)
 	r.GET("/user/order/history", m.UserRetreiveCookie, orderHandler.OrderHistory)
 	r.PATCH("/user/order/cancel/:orderid", m.UserRetreiveCookie, orderHandler.CancelOrder)

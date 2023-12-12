@@ -78,7 +78,20 @@ func (pu *ProductUseCase) ExecuteCreateProduct(product entity.Product, image *mu
 		Category: product.Category,
 		Size:     product.Size,
 	}
+	switch newprod.Size {
+	case "128gb":
+		fmt.Println("1")
+	case "256gb":
+		fmt.Println("1")
+	case "512gb":
+		fmt.Println("1")
+	case "1tb":
+		fmt.Println("1")
+	default:
+		return 0,errors.New("size must be any od this value 128gb,256gb,512gb,1tb")
 
+	}
+	
 	sess := utils.CreateSession(pu.s3)
 	// fmt.Println("sess", sess)
 
@@ -234,12 +247,12 @@ func (pu *ProductUseCase) ExecuteCreateCategory(category entity.Category) (int, 
 	}
 }
 
-func (pt *ProductUseCase) ExecuteGetAllCategory() (*[]entity.Category,error){
-	category,err:=pt.productRepo.AllCategory()
-	if err != nil{
-		return nil,err
+func (pt *ProductUseCase) ExecuteGetAllCategory() (*[]entity.Category, error) {
+	category, err := pt.productRepo.AllCategory()
+	if err != nil {
+		return nil, err
 	}
-	return category,nil
+	return category, nil
 }
 
 func (pt *ProductUseCase) ExecuteEditCategory(category entity.Category, id int) error {
@@ -292,8 +305,8 @@ func (pu *ProductUseCase) ExecuteDeleteCategory(Id int) error {
 	if err != nil {
 		return err
 	}
-	err1:=pu.productRepo.DeleteProductByCategory(category.ID)
-	if err1 != nil{
+	err1 := pu.productRepo.DeleteProductByCategory(category.ID)
+	if err1 != nil {
 		return err
 	}
 
@@ -520,25 +533,25 @@ func (pu *ProductUseCase) BeginTransaction() *gorm.DB {
 	return pu.productRepo.BeginTransaction()
 }
 
-func(au *ProductUseCase) ExecuteDeleteProductAdd(id int) error{
-	err:=au.productRepo.DeleteProductId(id)
-	if err != nil{
+func (au *ProductUseCase) ExecuteDeleteProductAdd(id int) error {
+	err := au.productRepo.DeleteProductId(id)
+	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func(au *ProductUseCase) ExecuteAddStock(productId,stock int) (*entity.Inventory,error){
+func (au *ProductUseCase) ExecuteAddStock(productId, stock int) (*entity.Inventory, error) {
 
-	product,err:=au.productRepo.GetInventoryByID(productId)
-	if err != nil{
-		return nil,err
+	product, err := au.productRepo.GetInventoryByID(productId)
+	if err != nil {
+		return nil, err
 	}
-	product.Quantity= product.Quantity + stock
-	err1:= au.productRepo.UpdateInventory(product)
-	if err1 != nil{
-		return nil,errors.New("error updating inventory")
+	product.Quantity = product.Quantity + stock
+	err1 := au.productRepo.UpdateInventory(product)
+	if err1 != nil {
+		return nil, errors.New("error updating inventory")
 	}
-	return product,nil
+	return product, nil
 
 }
