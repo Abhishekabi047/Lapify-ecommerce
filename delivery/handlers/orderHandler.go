@@ -92,7 +92,7 @@ func (oh *OrderHandler) PlaceOrder(c *gin.Context) {
 // @Param paymentid formData string true "Payment ID"
 // @Success 200 {string} string "Payment successful. Invoice details: {invoice}"
 // @Failure 400 {string} string "Bad request"
-// @Router /order/payment/verify [post]
+// @Router /user/payment/verify [post]
 func (co *OrderHandler) PaymentVerification(c *gin.Context) {
 	Signature := c.PostForm("sign")
 	razorId := c.PostForm("razorid")
@@ -188,6 +188,8 @@ func (op *OrderHandler) AdminOrderUpdate(c *gin.Context) {
 		return
 	}
 	status := c.PostForm("status")
+
+
 	fmt.Println("status", status)
 	err1 := op.OrderUseCase.ExecuteOrderUpdate(orderid, status)
 	if err1 != nil {

@@ -64,6 +64,30 @@ definitions:
           $ref: '#/definitions/entity.User'
         type: array
     type: object
+  entity.Product:
+    properties:
+      category:
+        type: integer
+      id:
+        type: integer
+      imageurl:
+        type: string
+      name:
+        type: string
+      offerprice:
+        type: integer
+      price:
+        type: integer
+      removed:
+        type: boolean
+      size:
+        type: string
+    required:
+    - category
+    - name
+    - price
+    - size
+    type: object
   entity.User:
     properties:
       email:
@@ -300,7 +324,7 @@ paths:
   /admin/coupons:
     delete:
       consumes:
-      - application/json
+      - multipart/form-data
       description: Delete an existing coupon based on the provided code
       operationId: deleteCoupon
       parameters:
@@ -668,12 +692,12 @@ paths:
         name: id
         required: true
         type: integer
-      - description: JSON-encoded Product object to be edited
+      - description: Product object to be edited
         in: body
-        name: product
+        name: category
         required: true
         schema:
-          type: string
+          $ref: '#/definitions/entity.Product'
       produces:
       - application/json
       responses:
@@ -919,60 +943,6 @@ paths:
       summary: Toggle User Permission
       tags:
       - Admin User Management
-  /logout:
-    post:
-      description: Deletes the authentication token cookie to log the user out
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: user logged out successfully
-          schema:
-            type: string
-        "400":
-          description: cookie delete failed
-          schema:
-            type: string
-      summary: Logs out the user
-      tags:
-      - User
-  /order/payment/verify:
-    post:
-      consumes:
-      - multipart/form-data
-      description: Verifies the payment for Razorpay based on the provided signature,
-        Razorpay ID, and payment ID.
-      operationId: verify-payment-razorpay
-      parameters:
-      - description: Signature for payment verification
-        in: formData
-        name: sign
-        required: true
-        type: string
-      - description: Razorpay ID
-        in: formData
-        name: razorid
-        required: true
-        type: string
-      - description: Payment ID
-        in: formData
-        name: paymentid
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 'Payment successful. Invoice details: {invoice}'
-          schema:
-            type: string
-        "400":
-          description: Bad request
-          schema:
-            type: string
-      summary: Verify payment for Razorpay
-      tags:
-      - User Orders
   /user/address:
     post:
       description: Adds a new address associated with the authenticated user
@@ -1159,12 +1129,6 @@ paths:
     get:
       description: Retrieve the items in the user's cart based on the provided user
         ID
-      parameters:
-      - description: User ID
-        in: path
-        name: userId
-        required: true
-        type: integer
       produces:
       - application/json
       responses:
@@ -1303,6 +1267,23 @@ paths:
       summary: Log in a user using phone and password
       tags:
       - User
+  /user/logout:
+    post:
+      description: Deletes the authentication token cookie to log the user out
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: user logged out successfully
+          schema:
+            type: string
+        "400":
+          description: cookie delete failed
+          schema:
+            type: string
+      summary: Logs out the user
+      tags:
+      - User
   /user/order/cancel/{orderid}:
     patch:
       description: Cancels an order based on the provided order ID.
@@ -1433,6 +1414,43 @@ paths:
           schema:
             type: string
       summary: Get the status of an order
+      tags:
+      - User Orders
+  /user/payment/verify:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Verifies the payment for Razorpay based on the provided signature,
+        Razorpay ID, and payment ID.
+      operationId: verify-payment-razorpay
+      parameters:
+      - description: Signature for payment verification
+        in: formData
+        name: sign
+        required: true
+        type: string
+      - description: Razorpay ID
+        in: formData
+        name: razorid
+        required: true
+        type: string
+      - description: Payment ID
+        in: formData
+        name: paymentid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'Payment successful. Invoice details: {invoice}'
+          schema:
+            type: string
+        "400":
+          description: Bad request
+          schema:
+            type: string
+      summary: Verify payment for Razorpay
       tags:
       - User Orders
   /user/products:

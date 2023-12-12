@@ -293,6 +293,17 @@ func (uu *UserUseCase) ExecuteAddAddress(address *entity.UserAddress) error {
 
 }
 
+func (uu *UserUseCase) CheckAddress(id int,adtype string) error{
+	ad,err:=uu.userRepo.GetAddressByType(id,adtype)
+	if err != nil{
+		return errors.New("err geting address")
+	}
+	if ad != nil{
+		return errors.New("address with the type already exists")
+	}
+	return nil
+}
+
 func (uu *UserUseCase) ExecuteEditProfile(user entity.User, userid int) error {
 	// validate := validator.New()
 	// if err := validate.Struct(user); err != nil {

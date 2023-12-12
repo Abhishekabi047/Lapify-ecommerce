@@ -160,6 +160,15 @@ func (co *OrderUseCase) ExecuteOrderUpdate(OrderId int, status string) error {
 		return errors.New("error finding order")
 	}
 	result.Status = status
+	switch status {
+	case "confirmed":
+		break
+	case "cancelled":
+		break
+	default:
+		return errors.New("status should be confirmed or cancelled")
+		
+	}
 	err1 := co.orderRepo.Update(result)
 	if err1 != nil {
 		return errors.New("error updating  order status")
@@ -232,7 +241,7 @@ func (rp *OrderUseCase) ExecuteRazorPay(userId, address int) (string, int, error
 	client := razorpay.NewClient(rp.razopay.RazopayKey, rp.razopay.RazopaySecret)
 
 	data := map[string]interface{}{
-		"amount":   int(cart.TotalPrize),
+		"amount":   int(cart.TotalPrize) - int(cart.OfferPrize),
 		"currency": "INR",
 		"receipt":  "101",
 	}

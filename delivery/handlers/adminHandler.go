@@ -26,7 +26,7 @@ func NewAdminHandler(AdminUsecase *usecase.AdminUseCase, ProductUsecase *product
 // @Summary Admin Login with Password
 // @Description Authenticate admin using email and password and generate an authentication token.
 // @ID admin-login
-// @Tags Admin 
+// @Tags Admin
 // @Accept json
 // @Produce json
 // @Param			admin	body		entity.AdminLogin	true	"Admin Data"
@@ -229,15 +229,14 @@ func (et *AdminHandler) DeleteCategory(c *gin.Context) {
 // @Success 200 {object} entity.Category "List of categories"
 // @Failure 400 {object} entity.ErrorResponse "Bad Request"
 // @Router /admin/categories [get]
-func(et *AdminHandler) AllCategory(c *gin.Context) {
-	categorylist,err:=et.ProductUseCase.ExecuteGetAllCategory()
-	if err!= nil{
-		c.JSON(http.StatusBadRequest,gin.H{"error":err.Error()})
+func (et *AdminHandler) AllCategory(c *gin.Context) {
+	categorylist, err := et.ProductUseCase.ExecuteGetAllCategory()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK,gin.H{"Categories":categorylist})
+	c.JSON(http.StatusOK, gin.H{"Categories": categorylist})
 }
-
 
 // CreateProduct godoc
 // @Summary Create a new product
@@ -341,7 +340,7 @@ func (cp *AdminHandler) CreateProduct(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param id path int true "Product ID" Format(int64)
-// @Param product body string true "JSON-encoded Product object to be edited"
+// @Param category body entity.Product true "Product object to be edited"
 // @Success 200 {string} string "Product edit success" "product":entity.product
 // @Failure 400 {string} string "String conversion error"
 // @Failure 400 {string} string "JSON binding failed"
@@ -509,7 +508,7 @@ func (ad *AdminHandler) AllCoupons(c *gin.Context) {
 // @Description Delete an existing coupon based on the provided code
 // @ID deleteCoupon
 // @Tags Admin Coupon Management
-// @Accept json
+// @Accept multipart/form-data
 // @Produce json
 // @Param code formData string true "Coupon code to be deleted"
 // @Success 200 {string} string "Coupon successfully deleted"
@@ -658,31 +657,31 @@ func (or *AdminHandler) SearchUsers(c *gin.Context) {
 // @Success 200 {object} entity.Inventory "Updated inventory"
 // @Failure 400 {string} string "Bad Request"
 // @Router /admin/products/stocks/{id} [put]
-func (or *AdminHandler) AddStock(c *gin.Context){
+func (or *AdminHandler) AddStock(c *gin.Context) {
 	var inventory *entity.Inventory
-	strid:=c.Param("id")
-	id,err1:=strconv.Atoi(strid)
-	if err1 != nil{
-		c.JSON(http.StatusBadRequest,gin.H{"error":"str conv failed"})
+	strid := c.Param("id")
+	id, err1 := strconv.Atoi(strid)
+	if err1 != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "str conv failed"})
 		return
 	}
-	if err := c.ShouldBindJSON(&inventory);err != nil{
-		c.JSON(http.StatusBadRequest,gin.H{"error":err.Error()})
+	if err := c.ShouldBindJSON(&inventory); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	quantity:=int(inventory.Quantity)
-	inventory,err:=or.ProductUseCase.ExecuteAddStock(id,quantity)
-	if err != nil{
-		c.JSON(http.StatusBadRequest,gin.H{"error":err.Error()})
+	quantity := int(inventory.Quantity)
+	inventory, err := or.ProductUseCase.ExecuteAddStock(id, quantity)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK,gin.H{"Updated result :":inventory})
+	c.JSON(http.StatusOK, gin.H{"Updated result :": inventory})
 }
 
 // Logout godoc
 // @Summary Logs out the Admin
 // @Description Deletes the authentication token cookie to log the admin out
-// @Tags Admin 
+// @Tags Admin
 // @Produce json
 // @Success 200 {string} string "Admin logged out successfully"
 // @Failure 400 {string} string "cookie delete failed"

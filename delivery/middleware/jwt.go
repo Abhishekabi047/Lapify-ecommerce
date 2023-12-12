@@ -87,7 +87,6 @@ func ValidToken(c *gin.Context) bool {
 }
 func RetreiveToken(c *gin.Context) (int, int, string, error) {
 	cookie, _ := c.Cookie("Authorise")
-	fmt.Println("cookie",cookie)
 	
 	if cookie == "" {
 		return 0, 0, "", errors.New("cookie not found")

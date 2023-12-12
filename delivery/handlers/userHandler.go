@@ -376,11 +376,11 @@ func (cu *UserHandler) ViewWishlist(c *gin.Context) {
 // Logout godoc
 // @Summary Logs out the user
 // @Description Deletes the authentication token cookie to log the user out
-// @Tags User 
+// @Tags User
 // @Produce json
 // @Success 200 {string} string "user logged out successfully"
 // @Failure 400 {string} string "cookie delete failed"
-// @Router /logout [post]
+// @Router /user/logout [post]
 func (cu *UserHandler) Logout(c *gin.Context) {
 	err := middleware.DeleteToken(c)
 	if err != nil {
@@ -409,7 +409,12 @@ func (cu *UserHandler) AddAddress(c *gin.Context) {
 		return
 	}
 	address.User_id = userid
-	err := cu.UserUseCase.ExecuteAddAddress(&address)
+	err1:=cu.UserUseCase.CheckAddress(userid,address.Type)
+	if err1 != nil{
+		c.JSON(http.StatusBadRequest,gin.H{"error":err1.Error()})
+		return
+	}
+	err:= cu.UserUseCase.ExecuteAddAddress(&address)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -475,7 +480,7 @@ func (eu *UserHandler) EditProfile(c *gin.Context) {
 // @Description Initiates the process of changing the user password by sending an OTP.
 // @ID change-password
 // @Accept json
-// @Tags User 
+// @Tags User
 // @Produce json
 // @Security ApiKeyAuth
 // @Success 200 {string} string "OTP sent successfully for password change"
@@ -498,7 +503,7 @@ func (cp *UserHandler) ChangePassword(c *gin.Context) {
 // @ID otp-validation-password
 // @Accept multipart/form-data
 // @Produce json
-// @Tags User 
+// @Tags User
 // @Security ApiKeyAuth
 // @Param password formData string true "New password for the user"
 // @Param otp formData string true "OTP for validation"
@@ -522,11 +527,12 @@ func (cp *UserHandler) OtpValidationPassword(c *gin.Context) {
 //		@Summary Get the items in the user's cart
 //		@Description Retrieve the items in the user's cart based on the provided user ID
 //		@Produce json
+//
 // @Tags User Products
-//		@Param userId path int true "User ID"
-//		@Success 200 {string} string "cartlist: []entity.CartItem"
-//		@Failure 400 {string} string "error: Bad Request"
-//		@Router /user/cartlist [get]
+//
+//	@Success 200 {string} string "cartlist: []entity.CartItem"
+//	@Failure 400 {string} string "error: Bad Request"
+//	@Router /user/cartlist [get]
 func (cl *UserHandler) CartItems(c *gin.Context) {
 
 	userID, _ := c.Get("userId")

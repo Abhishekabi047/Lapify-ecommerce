@@ -284,7 +284,7 @@ const docTemplate = `{
             "delete": {
                 "description": "Delete an existing coupon based on the provided code",
                 "consumes": [
-                    "application/json"
+                    "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
@@ -772,12 +772,12 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "JSON-encoded Product object to be edited",
-                        "name": "product",
+                        "description": "Product object to be edited",
+                        "name": "category",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/entity.Product"
                         }
                     }
                 ],
@@ -1130,85 +1130,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/logout": {
-            "post": {
-                "description": "Deletes the authentication token cookie to log the user out",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "User"
-                ],
-                "summary": "Logs out the user",
-                "responses": {
-                    "200": {
-                        "description": "user logged out successfully",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "400": {
-                        "description": "cookie delete failed",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/order/payment/verify": {
-            "post": {
-                "description": "Verifies the payment for Razorpay based on the provided signature, Razorpay ID, and payment ID.",
-                "consumes": [
-                    "multipart/form-data"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "User Orders"
-                ],
-                "summary": "Verify payment for Razorpay",
-                "operationId": "verify-payment-razorpay",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Signature for payment verification",
-                        "name": "sign",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Razorpay ID",
-                        "name": "razorid",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Payment ID",
-                        "name": "paymentid",
-                        "in": "formData",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Payment successful. Invoice details: {invoice}",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
         "/user/address": {
             "post": {
                 "description": "Adds a new address associated with the authenticated user",
@@ -1486,15 +1407,6 @@ const docTemplate = `{
                     "User Products"
                 ],
                 "summary": "Get the items in the user's cart",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "User ID",
-                        "name": "userId",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
                 "responses": {
                     "200": {
                         "description": "cartlist: []entity.CartItem",
@@ -1696,6 +1608,32 @@ const docTemplate = `{
                 }
             }
         },
+        "/user/logout": {
+            "post": {
+                "description": "Deletes the authentication token cookie to log the user out",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Logs out the user",
+                "responses": {
+                    "200": {
+                        "description": "user logged out successfully",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "cookie delete failed",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/user/order/cancel/{orderid}": {
             "patch": {
                 "description": "Cancels an order based on the provided order ID.",
@@ -1878,6 +1816,59 @@ const docTemplate = `{
                 "responses": {
                     "200": {
                         "description": "Order status retrieved successfully",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/payment/verify": {
+            "post": {
+                "description": "Verifies the payment for Razorpay based on the provided signature, Razorpay ID, and payment ID.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User Orders"
+                ],
+                "summary": "Verify payment for Razorpay",
+                "operationId": "verify-payment-razorpay",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Signature for payment verification",
+                        "name": "sign",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Razorpay ID",
+                        "name": "razorid",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Payment ID",
+                        "name": "paymentid",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Payment successful. Invoice details: {invoice}",
                         "schema": {
                             "type": "string"
                         }
@@ -2477,6 +2468,41 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/entity.User"
                     }
+                }
+            }
+        },
+        "entity.Product": {
+            "type": "object",
+            "required": [
+                "category",
+                "name",
+                "price",
+                "size"
+            ],
+            "properties": {
+                "category": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "imageurl": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "offerprice": {
+                    "type": "integer"
+                },
+                "price": {
+                    "type": "integer"
+                },
+                "removed": {
+                    "type": "boolean"
+                },
+                "size": {
+                    "type": "string"
                 }
             }
         },
